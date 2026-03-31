@@ -3,48 +3,36 @@
     "id": 1,
     "title": "傳說 高CP值帳號 全英雄解鎖",
     "price": 10000,
-    "hero": 51,
-    "skin": 71,
     "imgNAME": "acc.jpg"
   },
   {
     "id": 2,
     "title": "鑽石 穩定帳號 多套史詩皮膚",
     "price": 6500,
-    "hero": 44,
-    "skin": 53,
     "imgNAME": ""
   },
   {
     "id": 3,
     "title": "傳說 旗艦帳號 108英雄 FMVP限定",
     "price": 18000,
-    "hero": 71,
-    "skin": 108,
     "imgNAME": ""
   },
   {
     "id": 4,
     "title": "宗師 入門帳號 高性價比首選",
     "price": 3800,
-    "hero": 32,
-    "skin": 28,
     "imgNAME": ""
   },
   {
     "id": 5,
     "title": "傳說 限定造型收藏帳號 89套皮膚",
     "price": 14500,
-    "hero": 63,
-    "skin": 89,
     "imgNAME": ""
   },
   {
     "id": 6,
     "title": "鑽石 冠軍賽專屬皮膚 60套造型",
     "price": 7200,
-    "hero": 47,
-    "skin": 60,
     "imgNAME": ""
   }
 ]

@@ -1,0 +1,160 @@
+const express = require('express');
+const multer  = require('multer');
+const path    = require('path');
+const fs      = require('fs');
+
+const app  = express();
+const PORT = 3000;
+const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
+const IMG_DIR       = path.join(__dirname, 'acc_img');
+
+// Ensure acc_img directory exists
+if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR);
+
+app.use(express.json());
+app.use(express.static(__dirname));
+
+/* ── Helper: read / write accounts.json ── */
+function readAccounts() {
+  try { return JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8')); }
+  catch(e) { return []; }
+}
+function writeAccounts(data) {
+  fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+/* ── Helper: generate next 8-digit image ID ── */
+function nextImgId(accounts) {
+  // Find highest numeric imgNAME across all accounts
+  let max = 0;
+  for (const acc of accounts) {
+    const base = acc.imgNAME ? path.parse(acc.imgNAME).name : '';
+    const n = parseInt(base, 10);
+    if (!isNaN(n) && n > max) max = n;
+  }
+  return String(max + 1).padStart(8, '0');
+}
+
+/* ── Multer: save to temp, rename after we know the ID ── */
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, IMG_DIR),
+    filename:    (req, file, cb) => cb(null, 'tmp_' + Date.now() + path.extname(file.originalname)),
+  }),
+  fileFilter: (req, file, cb) => {
+    const ok = /\.(jpe?g|png|gif|webp)$/i.test(file.originalname);
+    cb(null, ok);
+  },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+});
+
+/* ══════════════════════════════════════════════════════════
+   API ROUTES
+══════════════════════════════════════════════════════════ */
+
+/* GET /api/accounts */
+app.get('/api/accounts', (req, res) => {
+  res.json(readAccounts());
+});
+
+/* POST /api/accounts  — add new account (with optional image) */
+app.post('/api/accounts', upload.single('image'), (req, res) => {
+  const accounts = readAccounts();
+  const { title, price } = req.body;
+
+  if (!title || !price) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: '標題和價格為必填' });
+  }
+
+  const newId = accounts.length ? Math.max(...accounts.map(a => a.id)) + 1 : 1;
+  let imgNAME = '';
+
+  if (req.file) {
+    const imgId  = nextImgId(accounts);
+    const ext    = path.extname(req.file.originalname).toLowerCase();
+    imgNAME      = imgId + ext;
+    const dest   = path.join(IMG_DIR, imgNAME);
+    fs.renameSync(req.file.path, dest);
+  }
+
+  const newAccount = {
+    id:      newId,
+    title:   title.trim(),
+    price:   Number(price),
+    imgNAME: imgNAME,
+  };
+
+  accounts.push(newAccount);
+  writeAccounts(accounts);
+  res.status(201).json(newAccount);
+});
+
+/* PUT /api/accounts/:id  — edit existing account */
+app.put('/api/accounts/:id', upload.single('image'), (req, res) => {
+  const accounts = readAccounts();
+  const id = parseInt(req.params.id, 10);
+  const idx = accounts.findIndex(a => a.id === id);
+
+  if (idx === -1) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return res.status(404).json({ error: '帳號不存在' });
+  }
+
+  const { title, price } = req.body;
+  if (!title || !price) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: '標題和價格為必填' });
+  }
+
+  let imgNAME = accounts[idx].imgNAME;
+
+  if (req.file) {
+    // Delete old image if it was a generated one (8-digit name)
+    if (imgNAME) {
+      const base = path.parse(imgNAME).name;
+      if (/^\d{8}$/.test(base)) {
+        const oldPath = path.join(IMG_DIR, imgNAME);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+    }
+    const imgId = nextImgId(accounts);
+    const ext   = path.extname(req.file.originalname).toLowerCase();
+    imgNAME     = imgId + ext;
+    fs.renameSync(req.file.path, path.join(IMG_DIR, imgNAME));
+  }
+
+  accounts[idx] = { ...accounts[idx], title: title.trim(), price: Number(price), imgNAME };
+  writeAccounts(accounts);
+  res.json(accounts[idx]);
+});
+
+/* DELETE /api/accounts/:id */
+app.delete('/api/accounts/:id', (req, res) => {
+  const accounts = readAccounts();
+  const id  = parseInt(req.params.id, 10);
+  const idx = accounts.findIndex(a => a.id === id);
+
+  if (idx === -1) return res.status(404).json({ error: '帳號不存在' });
+
+  const imgNAME = accounts[idx].imgNAME;
+  if (imgNAME) {
+    const base = path.parse(imgNAME).name;
+    if (/^\d{8}$/.test(base)) {
+      const imgPath = path.join(IMG_DIR, imgNAME);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+  }
+
+  accounts.splice(idx, 1);
+  writeAccounts(accounts);
+  res.json({ ok: true });
+});
+
+/* ── Serve acc_img directory ── */
+app.use('/acc_img', express.static(IMG_DIR));
+
+app.listen(PORT, () => {
+  console.log(`伺服器啟動於 http://localhost:${PORT}`);
+  console.log(`後台管理頁面: http://localhost:${PORT}/admin.html`);
+});
