@@ -202,19 +202,41 @@ const DEFAULT_ACCOUNTS = [
    ===================================================== */
 
 /* =====================================================
-   PERSISTENCE  (swap localStorage ↔ Supabase later)
+   PERSISTENCE  — load from server API
    ===================================================== */
-function loadAccounts() {
+async function loadAccountsFromAPI() {
   try {
-    const s = localStorage.getItem('aov_listings');
-    if (s) return JSON.parse(s);
-  } catch(e){}
-  return JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS)); // deep copy
+    const res = await fetch('/api/accounts');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    // Map server fields → frontend fields
+    return data.map(acc => ({
+      id:          acc.id,
+      sellerId:    'admin',
+      title:       acc.title,
+      price:       acc.price,
+      rank:        acc.rank || '其他',
+      heroCount:   acc.heroCount  || 0,
+      skinCount:   acc.skinCount  || 0,
+      winRate:     acc.winRate    || '-',
+      matches:     acc.matches    || 0,
+      isNew:       acc.isNew      || false,
+      sold:        acc.sold       || false,
+      views:       acc.views      || 0,
+      coverImage:  acc.imgNAME ? `/acc_img/${acc.imgNAME}` : 'https://placehold.co/800x600/0d0d26/ffd700?text=AOV',
+      images:      acc.imgNAME ? [`/acc_img/${acc.imgNAME}`] : [],
+      contact:     {},
+      tags:        [],
+    }));
+  } catch(e) {
+    // Fallback to default sample data if API unavailable
+    return JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+  }
 }
 function saveAccounts() {
-  localStorage.setItem('aov_listings', JSON.stringify(accountsData));
+  // No-op: data is managed by admin.html via API
 }
-let accountsData = loadAccounts();
+let accountsData = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
 
 /* =====================================================
    STATE
@@ -226,6 +248,7 @@ const S = {
   sortBy:'default',
   searchQuery:'',
   searchInput:'',
+  listPage:1,           // current page on list view
   activeImg:0,
   lightboxOpen:false,
   contactOpen:false,    // which account id, or null for generic
@@ -321,9 +344,32 @@ function renderNav(){
 }
 
 /* ── LIST PAGE ── */
+const LIST_PER_PAGE = 24;
+
 function renderListPage(){
   const items=filteredList();
   const avail=accountsData.filter(a=>!a.sold).length;
+  const totalPages=Math.max(1,Math.ceil(items.length/LIST_PER_PAGE));
+  if(S.listPage>totalPages) S.listPage=totalPages;
+  const start=(S.listPage-1)*LIST_PER_PAGE;
+  const pageItems=items.slice(start,start+LIST_PER_PAGE);
+
+  const pgBtn=(label,p,disabled,active=false)=>
+    `<button onclick="goListPage(${p})" style="min-width:2.1rem;height:2.1rem;padding:0 .6rem;border-radius:.45rem;font-size:.8rem;font-weight:700;cursor:${disabled?'default':'pointer'};border:1px solid ${active?'rgba(255,215,0,.6)':'rgba(255,255,255,.12)'};background:${active?'rgba(255,215,0,.15)':'rgba(255,255,255,.04)'};color:${active?'#FFD700':disabled?'rgba(255,255,255,.2)':'rgba(255,255,255,.65)'}" ${disabled?'disabled':''}>${label}</button>`;
+
+  const buildPagination=()=>{
+    if(totalPages<=1)return'';
+    const parts=[];
+    parts.push(pgBtn('‹',S.listPage-1,S.listPage===1));
+    let lo=Math.max(1,S.listPage-2),hi=Math.min(totalPages,S.listPage+2);
+    if(lo>1){parts.push(pgBtn('1',1,false,S.listPage===1));if(lo>2)parts.push(`<span style="color:rgba(255,255,255,.25);font-size:.82rem">…</span>`);}
+    for(let i=lo;i<=hi;i++)parts.push(pgBtn(i,i,false,i===S.listPage));
+    if(hi<totalPages){if(hi<totalPages-1)parts.push(`<span style="color:rgba(255,255,255,.25);font-size:.82rem">…</span>`);parts.push(pgBtn(totalPages,totalPages,false,S.listPage===totalPages));}
+    parts.push(pgBtn('›',S.listPage+1,S.listPage===totalPages));
+    return`<div style="display:flex;justify-content:center;align-items:center;gap:.4rem;padding:1.5rem 0 .5rem;flex-wrap:wrap">${parts.join('')}</div>
+    <div style="text-align:center;font-size:.75rem;color:rgba(255,255,255,.28);margin-bottom:.5rem">第 ${S.listPage} / ${totalPages} 頁，共 ${items.length} 個帳號</div>`;
+  };
+
   return `
   <div class="max-w-7xl mx-auto px-3 sm:px-4 pb-16">
     <div style="padding:1.4rem 0 .9rem;display:flex;flex-wrap:wrap;align-items:center;gap:.75rem">
@@ -356,8 +402,9 @@ function renderListPage(){
       </div>
     `:`
       <div class="pcard-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:.9rem;padding-top:.9rem">
-        ${items.map(renderProductCard).join('')}
+        ${pageItems.map(renderProductCard).join('')}
       </div>
+      ${buildPagination()}
     `}
   </div>`;
 }
@@ -735,9 +782,10 @@ function goDetail(id){history.pushState(null,'',`#/account/${id}`);S.page='detai
 function goAdmin(){history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
 
 /* List */
-function handleSearch(v){S.searchQuery=v;S.searchInput=v;render()}
-function setFilter(r){S.filterRank=r;render()}
-function setSort(v){S.sortBy=v;render()}
+function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
+function setFilter(r){S.filterRank=r;S.listPage=1;render()}
+function setSort(v){S.sortBy=v;S.listPage=1;render()}
+function goListPage(p){S.listPage=p;window.scrollTo({top:0,behavior:'smooth'});render()}
 
 /* Images */
 function setActiveImg(i){
@@ -847,11 +895,13 @@ window.addEventListener('popstate',()=>{
   render();
 });
 
-(()=>{
+(async()=>{
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;}}
   else if(h==='#/admin'){S.page='admin';}
-  render();
+  render(); // render immediately with default data
+  accountsData = await loadAccountsFromAPI();
+  render(); // re-render with real data from API
 })();
 </script>
 </body>
