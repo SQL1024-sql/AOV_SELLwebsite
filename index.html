@@ -200,10 +200,6 @@ const DEFAULT_ACCOUNTS = [
 /* =====================================================
    GLOBAL CONTACT INFO
    ===================================================== */
-const CONTACT = {
-  lineId: '@aov_shop',
-  lineUrl: 'https://line.me/ti/p/~aov_shop',
-};
 
 /* =====================================================
    PERSISTENCE  (swap localStorage ↔ Supabase later)
@@ -229,6 +225,7 @@ const S = {
   filterRank:'all',
   sortBy:'default',
   searchQuery:'',
+  searchInput:'',
   activeImg:0,
   lightboxOpen:false,
   contactOpen:false,    // which account id, or null for generic
@@ -302,7 +299,8 @@ function renderNav(){
         <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);width:.9rem;height:.9rem;pointer-events:none;color:rgba(255,255,255,.32)" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-        <input type="text" class="search-bar" id="searchInput" placeholder="搜尋帳號、段位…" value="${esc(S.searchQuery)}" oninput="handleSearch(this.value)"/>
+        <input type="text" class="search-bar" id="searchInput" placeholder="搜尋帳號、段位…" value="${esc(S.searchInput)}" oninput="S.searchInput=this.value" onkeydown="if(event.key==='Enter')handleSearch(this.value)" style="padding-right:2.8rem"/>
+        <button onclick="handleSearch(document.getElementById('searchInput').value)" style="position:absolute;right:.4rem;top:50%;transform:translateY(-50%);background:rgba(255,215,0,.2);border:1px solid rgba(255,215,0,.35);color:#FFD700;border-radius:.5rem;padding:.22rem .55rem;cursor:pointer;font-size:.75rem;font-weight:700">搜尋</button>
       </div>
       `:isAdmin?`<div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.55)">商家後台</div>`:'<div style="flex:1"></div>'}
 
@@ -428,20 +426,11 @@ function renderDetailPage(){
         <!-- Stats -->
         <div class="glass" style="padding:.85rem 1rem;margin-bottom:1rem">
           <div style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:.45rem">帳號數據</div>
-          ${[['✨','造型數量',acc.skinCount+' 套','#FFD700'],['⚔️','英雄數量',acc.heroCount+' 位','#fff'],['🏆','勝率',acc.winRate,'#fff'],['🎮','對戰場次',fmt(acc.matches)+' 場','#fff']].map(([ic,lb,val,col])=>`
+          ${[['✨','造型數量',acc.skinCount+' 套','#FFD700'],['⚔️','英雄數量',acc.heroCount+' 位','#fff']].map(([ic,lb,val,col])=>`
             <div class="stat-row"><span style="color:rgba(255,255,255,.5);font-size:.82rem">${ic} ${lb}</span><span style="font-weight:700;color:${col}">${esc(String(val))}</span></div>
           `).join('')}
         </div>
 
-        <!-- Contact Us -->
-        <div style="background:rgba(0,200,83,.06);border:1px solid rgba(0,200,83,.22);border-radius:.85rem;padding:.9rem 1rem;margin-bottom:.65rem">
-          <div style="font-weight:700;color:#4ade80;font-size:.85rem;margin-bottom:.6rem">📞 聯繫我們</div>
-          <div style="display:flex;align-items:center;gap:.5rem;background:rgba(0,200,83,.08);border:1px solid rgba(0,200,83,.2);border-radius:.6rem;padding:.45rem .8rem;margin-bottom:.55rem">
-            <span style="font-family:monospace;font-size:.82rem;color:#fff;flex:1">${esc(CONTACT.lineId)}</span>
-            <button onclick="copyContact('${esc(CONTACT.lineId)}')" id="copyBtn" style="font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:.4rem;background:rgba(0,200,83,.25);color:#4ade80;border:none;cursor:pointer;white-space:nowrap">${S.copied?'已複製✓':'複製'}</button>
-          </div>
-          <a href="${esc(CONTACT.lineUrl)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;padding:.55rem;border-radius:.6rem;background:linear-gradient(135deg,#00B900,#00D42A);color:#fff;font-weight:700;font-size:.82rem;text-decoration:none">開啟 LINE 聯絡</a>
-        </div>
         ${!acc.sold?`<button onclick="openContactModal(${acc.id})" class="pulse-glow" style="width:100%;padding:.9rem;border-radius:.85rem;font-weight:900;font-size:1rem;background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A;border:none;cursor:pointer" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">💬 立即詢問購買</button>`:`<div style="width:100%;padding:.9rem;border-radius:.85rem;text-align:center;font-weight:900;font-size:1rem;background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.3);color:#f87171">此帳號已售出</div>`}
       </div>
     </div>
@@ -545,7 +534,6 @@ function renderFormModal(){
   const v=(f,def='')=>esc(String(acc?acc[f]??def:def));
   const vc=(f,def='')=>esc(String(acc?.contact?.[f]??def));
   const imagesVal=acc?acc.images.join('\n'):'';
-  const tagsVal=acc?acc.tags.join(', '):'';
 
   return`
   <div class="modal-backdrop" onclick="closeForm()" style="align-items:flex-start;padding-top:2rem">
@@ -592,10 +580,6 @@ function renderFormModal(){
           <input id="f_matches" class="inp" type="number" min="0" placeholder="668" value="${v('matches')}"/>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">標籤（逗號分隔）</label>
-        <input id="f_tags" class="inp" placeholder="限定皮膚, 高勝率, FMVP" value="${esc(tagsVal)}"/>
-      </div>
       <div style="display:flex;gap:1.5rem;margin-bottom:.85rem">
         <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:rgba(255,255,255,.6);cursor:pointer">
           <input type="checkbox" id="f_isNew" ${acc?.isNew?'checked':''} style="accent-color:#FFD700;width:15px;height:15px"/> 標示為新上架
@@ -616,20 +600,6 @@ function renderFormModal(){
         <textarea id="f_images" class="inp" placeholder="https://pic1.jpg&#10;https://pic2.jpg">${esc(imagesVal)}</textarea>
       </div>
 
-      <!-- Section: 聯絡資訊 -->
-      <div style="font-size:.72rem;font-weight:700;color:rgba(255,215,0,.7);letter-spacing:.05em;margin-bottom:.6rem;padding-bottom:.3rem;border-bottom:1px solid rgba(255,215,0,.12)">聯絡資訊</div>
-      <div class="form-group">
-        <label class="form-label">LINE ID</label>
-        <input id="f_lineId" class="inp" placeholder="@yourlineid" value="${vc('lineId')}"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">LINE 連結</label>
-        <input id="f_lineUrl" class="inp" placeholder="https://line.me/ti/p/~yourlineid" value="${vc('lineUrl')}"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Messenger 連結</label>
-        <input id="f_messengerUrl" class="inp" placeholder="https://m.me/yourpage" value="${vc('messengerUrl')}"/>
-      </div>
 
       <!-- Submit -->
       <div style="display:flex;gap:.65rem;margin-top:.5rem">
@@ -669,14 +639,7 @@ function renderContactModal(){
         <h2 class="tg-gold" style="font-weight:900;font-size:1.05rem">📞 聯繫我們</h2>
         <button onclick="closeContact()" style="font-size:1.6rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
       </div>
-      <div style="background:rgba(0,200,83,.07);border:1px solid rgba(0,200,83,.22);border-radius:.8rem;padding:.85rem;margin-bottom:.6rem">
-        <div style="font-weight:700;color:#4ade80;font-size:.82rem;margin-bottom:.6rem">LINE</div>
-        <div style="display:flex;align-items:center;gap:.4rem;background:rgba(0,200,83,.08);border:1px solid rgba(0,200,83,.2);border-radius:.55rem;padding:.4rem .75rem;margin-bottom:.5rem">
-          <span style="font-family:monospace;font-size:.82rem;color:#fff;flex:1">${esc(CONTACT.lineId)}</span>
-          <button onclick="copyContact('${esc(CONTACT.lineId)}')" id="copyBtn2" style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:.4rem;background:rgba(0,200,83,.25);color:#4ade80;border:none;cursor:pointer;white-space:nowrap">${S.copied?'已複製✓':'複製'}</button>
-        </div>
-        <a href="${esc(CONTACT.lineUrl)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;padding:.5rem;border-radius:.6rem;background:linear-gradient(135deg,#00B900,#00D42A);color:#fff;font-weight:700;font-size:.8rem;text-decoration:none">開啟 LINE</a>
-      </div>
+      <div style="text-align:center;padding:1rem 0;color:rgba(255,255,255,.5);font-size:.88rem">請直接透過平台聯繫賣家</div>
     </div>
   </div>`;
 }
@@ -704,8 +667,7 @@ function renderLoginModal(){
       </div>
       <button onclick="handleLogin()" style="width:100%;padding:.65rem;border-radius:.7rem;font-weight:900;font-size:.92rem;background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A;border:none;cursor:pointer;box-shadow:0 0 18px rgba(255,215,0,.28)" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">登入</button>
       <div style="text-align:center;margin-top:.9rem">
-        <span style="font-size:.78rem;color:rgba(255,255,255,.35)">還沒有帳號？</span>
-        <a href="https://line.me/ti/p/~aov_admin" target="_blank" rel="noopener noreferrer" onclick="closeLogin()" style="font-size:.78rem;font-weight:600;color:#FFD700;text-decoration:none;margin-left:.2rem">私訊申請 →</a>
+        <span style="font-size:.78rem;color:rgba(255,255,255,.35)">還沒有帳號？請聯繫管理員申請</span>
       </div>
     </div>
   </div>`;
@@ -738,7 +700,6 @@ function renderFooter(){
     <div class="footer-inner">
       <div class="tg-gold" style="font-size:.85rem;font-weight:700">⚔ 傳說對決 帳號展示平台</div>
       <p class="copyright">© ${new Date().getFullYear()} AOV Account Shop · All rights reserved</p>
-      <p class="copyright" style="margin-top:.15rem">如有任何問題請透過 LINE 聯繫我們</p>
     </div>
   </footer>`;
 }
@@ -759,7 +720,7 @@ function goDetail(id){history.pushState(null,'',`#/account/${id}`);S.page='detai
 function goAdmin(){history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
 
 /* List */
-function handleSearch(v){S.searchQuery=v;render()}
+function handleSearch(v){S.searchQuery=v;S.searchInput=v;render()}
 function setFilter(r){S.filterRank=r;render()}
 function setSort(v){S.sortBy=v;render()}
 
@@ -819,8 +780,7 @@ function submitForm(){
   const imagesRaw=g('f_images');
   const images=imagesRaw?imagesRaw.split('\n').map(s=>s.trim()).filter(Boolean):[cover];
   if(!images.includes(cover))images.unshift(cover);
-  const tagsRaw=g('f_tags');
-  const tags=tagsRaw?tagsRaw.split(',').map(s=>s.trim()).filter(Boolean):[];
+  const tags=[];
 
   const data={
     title,price,rank,
@@ -834,11 +794,7 @@ function submitForm(){
     tags,
     isNew:document.getElementById('f_isNew')?.checked||false,
     sold:document.getElementById('f_sold')?.checked||false,
-    contact:{
-      lineId:g('f_lineId'),
-      lineUrl:g('f_lineUrl'),
-      messengerUrl:g('f_messengerUrl'),
-    },
+    contact:{},
     sellerId:S.currentUser?.id||'demo',
   };
 
