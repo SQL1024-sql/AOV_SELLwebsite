@@ -331,7 +331,7 @@ function renderListPage(){
 
     <div style="display:flex;align-items:center;gap:.75rem;padding-bottom:.9rem;border-bottom:1px solid rgba(255,255,255,.06)">
       <div style="display:flex;gap:.4rem;overflow-x:auto;flex:1" class="scrollbar-hide">
-        ${[{k:'all',l:'全部',c:'all'},{k:'傳說',l:'👑 傳說',c:'legend'},{k:'鑽石',l:'💎 鑽石',c:'diamond'},{k:'宗師',l:'🔮 宗師',c:'master'}].map(f=>`
+        ${[{k:'all',l:'全部',c:'all'}].map(f=>`
           <button onclick="setFilter('${f.k}')" class="fpill ${S.filterRank===f.k?`fp-active-${f.c}`:''}"> ${f.l}</button>
         `).join('')}
       </div>
@@ -639,7 +639,9 @@ function renderContactModal(){
         <h2 class="tg-gold" style="font-weight:900;font-size:1.05rem">📞 聯繫我們</h2>
         <button onclick="closeContact()" style="font-size:1.6rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
       </div>
-      <div style="text-align:center;padding:1rem 0;color:rgba(255,255,255,.5);font-size:.88rem">請直接透過平台聯繫賣家</div>
+      <div style="text-align:center;padding:1rem 0;color:rgba(255,255,255,.5);font-size:.88rem">
+         <herf>mailto:${S.contactEmail}?subject=詢問購買 ${encodeURIComponent(accountsData.find(a=>a.id===S.accountId)?.title||'帳號')}&body=您好，我對您在AOV帳號販售平台上的帳號有興趣，想進一步了解購買細節。謝謝！</herf>
+        </div>
     </div>
   </div>`;
 }
