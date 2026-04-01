@@ -388,7 +388,6 @@ function renderListPage(){
         <option value="default"    ${S.sortBy==='default'?'selected':''}>預設排序</option>
         <option value="price-asc"  ${S.sortBy==='price-asc'?'selected':''}>價格 低→高</option>
         <option value="price-desc" ${S.sortBy==='price-desc'?'selected':''}>價格 高→低</option>
-        <option value="skins-desc" ${S.sortBy==='skins-desc'?'selected':''}>造型最多</option>
       </select>
     </div>
 
@@ -471,13 +470,6 @@ function renderDetailPage(){
           <div class="tg-gold" style="font-size:2rem;font-weight:900;line-height:1">NT$ ${fmt(acc.price)}</div>
         </div>
 
-        <!-- Stats -->
-        <div class="glass" style="padding:.85rem 1rem;margin-bottom:1rem">
-          <div style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:.45rem">帳號數據</div>
-          ${[['✨','造型數量',acc.skinCount+' 套','#FFD700'],['⚔️','英雄數量',acc.heroCount+' 位','#fff']].map(([ic,lb,val,col])=>`
-            <div class="stat-row"><span style="color:rgba(255,255,255,.5);font-size:.82rem">${ic} ${lb}</span><span style="font-weight:700;color:${col}">${esc(String(val))}</span></div>
-          `).join('')}
-        </div>
 
         ${!acc.sold?`<button onclick="openContactModal(${acc.id})" class="pulse-glow" style="width:100%;padding:.9rem;border-radius:.85rem;font-weight:900;font-size:1rem;background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A;border:none;cursor:pointer" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">💬 立即詢問購買</button>`:`<div style="width:100%;padding:.9rem;border-radius:.85rem;text-align:center;font-weight:900;font-size:1rem;background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.3);color:#f87171">此帳號已售出</div>`}
       </div>
