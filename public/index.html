@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>傳說對決帳號展示</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Noto Sans TC',system-ui,sans-serif;background:#07071A;color:#fff;min-height:100vh;display:flex;flex-direction:column}
+    .bg-grid{background-image:linear-gradient(rgba(255,215,0,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,215,0,.022) 1px,transparent 1px);background-size:52px 52px}
+    .glass{background:rgba(255,255,255,.045);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,215,0,.12);border-radius:1rem}
+    .glass-dark{background:rgba(7,7,26,.9);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+    .tg-gold{background:linear-gradient(135deg,#FFE57A,#FFD700,#FFA500);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .tg-wg{background:linear-gradient(135deg,#fff 0%,#FFD700 60%,#B47FFF 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+
+    /* ── Product card ── */
+    .pcard{background:#0D0D26;border-radius:1rem;overflow:hidden;cursor:pointer;transition:transform .28s,box-shadow .28s;border:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;position:relative}
+    .pcard:hover{transform:translateY(-5px);box-shadow:0 16px 45px rgba(255,215,0,.15);border-color:rgba(255,215,0,.3)}
+    .pcard .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;transition:transform .45s}
+    .pcard:hover .thumb{transform:scale(1.05)}
+    .pcard .thumb-wrap{overflow:hidden;position:relative;flex-shrink:0}
+
+    /* ── Shimmer ── */
+    .shimmer{position:relative}
+    .shimmer::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,rgba(255,215,0,0) 20%,rgba(255,215,0,.2) 50%,rgba(255,215,0,0) 80%);background-size:200% 100%;animation:shimmer 3s linear infinite;pointer-events:none;border-radius:inherit;z-index:2}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    /* ── Rank colours ── */
+    .rk-legend {background:rgba(255,215,0,.15); color:#FFD700;border:1px solid rgba(255,215,0,.45)}
+    .rk-diamond{background:rgba(99,179,237,.15);color:#63B3ED;border:1px solid rgba(99,179,237,.4)}
+    .rk-master {background:rgba(180,127,255,.15);color:#B47FFF;border:1px solid rgba(180,127,255,.4)}
+    .rk-champ  {background:rgba(252,129,74,.15); color:#FC814A;border:1px solid rgba(252,129,74,.4)}
+
+    /* ── Filter pills ── */
+    .fpill{flex-shrink:0;padding:.3rem .85rem;border-radius:999px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;border:none;outline:none}
+    .fp-active-legend {background:rgba(255,215,0,.2); color:#FFD700;box-shadow:0 0 12px rgba(255,215,0,.25)}
+    .fp-active-diamond{background:rgba(99,179,237,.2);color:#63B3ED}
+    .fp-active-master {background:rgba(180,127,255,.2);color:#B47FFF}
+    .fp-active-all    {background:rgba(255,255,255,.12);color:#fff}
+    .fpill:not([class*=fp-active]){background:rgba(255,255,255,.05);color:rgba(255,255,255,.45)}
+    .fpill:not([class*=fp-active]):hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.8)}
+
+    /* ── Inputs ── */
+    .inp{background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;transition:border-color .25s;border-radius:.7rem;width:100%;padding:.65rem .9rem;font-size:.875rem}
+    .inp:focus{border-color:rgba(255,215,0,.55)}
+    .inp::placeholder{color:rgba(255,255,255,.28)}
+    select.inp{cursor:pointer}
+    select.inp option{background:#0D0D26}
+    textarea.inp{resize:vertical;min-height:80px;font-family:inherit}
+
+    .search-bar{background:rgba(255,255,255,.07);border:1.5px solid rgba(255,215,0,.25);border-radius:.75rem;color:#fff;outline:none;transition:border-color .22s,box-shadow .22s;font-size:.875rem;width:100%;padding:.52rem 1rem .52rem 2.3rem}
+    .search-bar:focus{border-color:rgba(255,215,0,.55);box-shadow:0 0 0 3px rgba(255,215,0,.08)}
+    .search-bar::placeholder{color:rgba(255,255,255,.3)}
+
+    select.sort-sel{background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.2);color:rgba(255,255,255,.7);font-size:.78rem;border-radius:.55rem;padding:.3rem .65rem;outline:none;cursor:pointer}
+    select.sort-sel option{background:#0D0D26}
+
+    nav{position:sticky;top:0;z-index:50}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:#07071A}
+    ::-webkit-scrollbar-thumb{background:linear-gradient(#FFD700,#7B2FBE);border-radius:3px}
+    .scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
+    .scrollbar-hide::-webkit-scrollbar{display:none}
+
+    @keyframes pulseGlow{0%,100%{box-shadow:0 0 14px rgba(255,215,0,.35)}50%{box-shadow:0 0 34px rgba(255,215,0,.65)}}
+    .pulse-glow{animation:pulseGlow 2.5s ease-in-out infinite}
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(5px);z-index:70;display:flex;align-items:center;justify-content:center;padding:1rem;animation:fadeIn .17s ease;overflow-y:auto}
+    .modal-box{animation:slideUp .2s ease;max-height:90vh;overflow-y:auto}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes slideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+    .img-thumb{width:70px;height:50px;object-fit:cover;border-radius:.45rem;cursor:pointer;flex-shrink:0;border:2px solid rgba(255,255,255,.1);transition:border-color .18s,transform .18s}
+    .img-thumb.active,.img-thumb:hover{border-color:#FFD700;transform:scale(1.07)}
+    .detail-main-img{width:100%;display:block;border-radius:.85rem;cursor:zoom-in;aspect-ratio:4/3;object-fit:cover}
+
+    .stat-row{display:flex;align-items:center;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.875rem}
+    .stat-row:last-child{border-bottom:none}
+    .breadcrumb a{color:rgba(255,255,255,.4);font-size:.78rem;cursor:pointer;text-decoration:none}
+    .breadcrumb a:hover{color:#FFD700}
+    .breadcrumb span{color:rgba(255,255,255,.25);font-size:.78rem;margin:0 .35rem}
+
+    /* ── Admin ── */
+    .admin-card{background:#0D0D26;border:1px solid rgba(255,255,255,.08);border-radius:.9rem;padding:1rem;display:flex;gap:.85rem;align-items:flex-start;transition:border-color .2s}
+    .admin-card:hover{border-color:rgba(255,215,0,.25)}
+    .admin-thumb{width:90px;height:68px;object-fit:cover;border-radius:.55rem;flex-shrink:0}
+    .btn{cursor:pointer;font-weight:700;border:none;transition:all .18s;border-radius:.6rem;padding:.45rem .9rem;font-size:.78rem}
+    .btn-gold{background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A}
+    .btn-gold:hover{opacity:.85}
+    .btn-outline{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65)}
+    .btn-outline:hover{background:rgba(255,255,255,.12)}
+    .btn-red{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171}
+    .btn-red:hover{background:rgba(239,68,68,.25)}
+    .btn-green{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80}
+    .form-label{font-size:.78rem;color:rgba(255,255,255,.5);display:block;margin-bottom:.3rem}
+    .form-group{margin-bottom:.85rem}
+
+    .tab-btn{padding:.55rem 1.1rem;font-size:.82rem;font-weight:600;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s}
+    .tab-btn.active{color:#FFD700;border-bottom-color:#FFD700}
+    .tab-btn:hover:not(.active){color:rgba(255,255,255,.75)}
+
+    /* ── Footer ── */
+    footer{background:rgba(7,7,26,.97);border-top:1px solid rgba(255,215,0,.1);padding:1.5rem 1rem;text-align:center;margin-top:auto}
+    footer .footer-inner{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:.5rem}
+    footer .copyright{font-size:.78rem;color:rgba(255,255,255,.3)}
+
+    /* ── Responsive ── */
+    @media(max-width:640px){
+      .pcard-grid{grid-template-columns:repeat(2,1fr)!important;gap:.5rem!important}
+      #detailGrid{grid-template-columns:1fr!important}
+      .detail-price{font-size:1.5rem!important}
+      .nav-title{display:none}
+      .modal-box{margin:.5rem;width:calc(100vw - 1rem)!important;max-width:100%!important}
+      footer{padding:1rem .75rem}
+      /* Nav: 搜尋欄換行到第二行 */
+      .nav-main-row{flex-wrap:wrap!important;padding-bottom:.45rem!important}
+      .nav-search-wrap{order:10;width:100%;max-width:100%!important;margin:0 0 .15rem!important}
+      /* 聯繫按鈕只顯示 emoji */
+      .nav-contact-text{display:none}
+      /* 導覽按鈕縮小 padding */
+      .nav-action-btn{padding:.38rem .55rem!important}
+      /* Form modal: 單欄排列 */
+      .form-grid-2{grid-template-columns:1fr!important}
+      /* 後台操作按鈕：2×2 排列 */
+      .admin-actions{flex-direction:row!important;flex-wrap:wrap!important;flex-shrink:1!important;min-width:0!important;width:auto}
+      .admin-actions .btn{flex:1 1 calc(50% - .2rem);min-width:0;text-align:center;padding:.3rem .25rem!important;font-size:.68rem!important}
+      /* 後台卡片縮圖縮小 */
+      .admin-thumb{width:70px!important;height:52px!important}
+      /* 觸控目標 */
+      .fpill{min-height:36px;display:inline-flex;align-items:center}
+      .sort-sel{min-height:36px}
+      /* 詳情頁面 */
+      .detail-main-img{border-radius:.55rem!important}
+      .img-thumb{width:58px!important;height:42px!important}
+    }
+    @media(max-width:400px){
+      .pcard-grid{grid-template-columns:1fr!important}
+      .admin-actions .btn{flex:1 1 100%}
+    }
+  </style>
+</head>
+<body class="bg-grid">
+<div id="app"></div>
+
+<script>
+/* =====================================================
+   DEFAULT DATA  (fallback when localStorage is empty)
+   Future: load from Supabase
+   ===================================================== */
+const DEFAULT_ACCOUNTS = [
+  {
+    id:1, sellerId:"demo",
+    title:"傳說 高CP值帳號 全英雄解鎖",
+    price:10000, rank:"傳說",
+    heroCount:51, skinCount:71, winRate:"61.7%", matches:668,
+    isNew:true, sold:false, views:312,
+    coverImage:"acc.jpg", images:["acc.jpg"],
+    contact:{ lineId:"@seller_demo", lineUrl:"https://line.me/ti/p/~seller_demo", messengerUrl:"https://m.me/sellerdemo" },
+    tags:["限定皮膚","高勝率"],
+  },
+  {
+    id:2, sellerId:"demo",
+    title:"鑽石 穩定帳號 多套史詩皮膚",
+    price:6500, rank:"鑽石",
+    heroCount:44, skinCount:53, winRate:"58.2%", matches:432,
+    isNew:false, sold:false, views:187,
+    coverImage:"https://picsum.photos/seed/aov2/800/600",
+    images:["https://picsum.photos/seed/aov2/1200/900","https://picsum.photos/seed/aov2b/1200/900"],
+    contact:{ lineId:"@seller_demo", lineUrl:"https://line.me/ti/p/~seller_demo", messengerUrl:"https://m.me/sellerdemo" },
+    tags:["史詩皮膚"],
+  },
+  {
+    id:3, sellerId:"demo",
+    title:"傳說 旗艦帳號 108英雄 FMVP限定",
+    price:18000, rank:"傳說",
+    heroCount:71, skinCount:108, winRate:"65.4%", matches:1204,
+    isNew:true, sold:false, views:561,
+    coverImage:"https://picsum.photos/seed/aov3/800/600",
+    images:["https://picsum.photos/seed/aov3/1200/900","https://picsum.photos/seed/aov3b/1200/900","https://picsum.photos/seed/aov3c/1200/900"],
+    contact:{ lineId:"@seller_vip", lineUrl:"https://line.me/ti/p/~seller_vip", messengerUrl:"https://m.me/sellervip" },
+    tags:["FMVP皮膚","限定"],
+  },
+  {
+    id:4, sellerId:"demo",
+    title:"宗師 入門帳號 高性價比首選",
+    price:3800, rank:"宗師",
+    heroCount:32, skinCount:28, winRate:"54.9%", matches:311,
+    isNew:false, sold:true, views:98,
+    coverImage:"https://picsum.photos/seed/aov4/800/600",
+    images:["https://picsum.photos/seed/aov4/1200/900"],
+    contact:{ lineId:"@seller_demo", lineUrl:"https://line.me/ti/p/~seller_demo", messengerUrl:"https://m.me/sellerdemo" },
+    tags:["平價入門"],
+  },
+  {
+    id:5, sellerId:"demo",
+    title:"傳說 限定造型收藏帳號 89套皮膚",
+    price:14500, rank:"傳說",
+    heroCount:63, skinCount:89, winRate:"62.8%", matches:980,
+    isNew:false, sold:false, views:430,
+    coverImage:"https://picsum.photos/seed/aov5/800/600",
+    images:["https://picsum.photos/seed/aov5/1200/900","https://picsum.photos/seed/aov5b/1200/900"],
+    contact:{ lineId:"@seller_vip", lineUrl:"https://line.me/ti/p/~seller_vip", messengerUrl:"https://m.me/sellervip" },
+    tags:["限定皮膚","AI英雄"],
+  },
+  {
+    id:6, sellerId:"demo",
+    title:"鑽石 冠軍賽專屬皮膚 60套造型",
+    price:7200, rank:"鑽石",
+    heroCount:47, skinCount:60, winRate:"59.1%", matches:561,
+    isNew:false, sold:false, views:224,
+    coverImage:"https://picsum.photos/seed/aov6/800/600",
+    images:["https://picsum.photos/seed/aov6/1200/900","https://picsum.photos/seed/aov6b/1200/900"],
+    contact:{ lineId:"@seller_demo", lineUrl:"https://line.me/ti/p/~seller_demo", messengerUrl:"https://m.me/sellerdemo" },
+    tags:["冠軍賽皮膚"],
+  },
+];
+
+/* =====================================================
+   GLOBAL CONTACT INFO
+   ===================================================== */
+
+/* =====================================================
+   PERSISTENCE  — load from server API
+   ===================================================== */
+async function loadAccountsFromAPI() {
+  try {
+    const res = await fetch('/api/accounts');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    // Map server fields → frontend fields
+    return data.map(acc => ({
+      id:          acc.id,
+      sellerId:    'admin',
+      title:       acc.title || '',
+      price:       acc.price,
+      rank:        acc.rank || '其他',
+      heroCount:   acc.heroCount  || 0,
+      skinCount:   acc.skinCount  || 0,
+      winRate:     acc.winRate    || '-',
+      matches:     acc.matches    || 0,
+      isNew:       acc.isNew      || false,
+      sold:        acc.sold       || false,
+      views:       acc.views      || 0,
+      coverImage:  acc.imgNAME ? `/acc_img/${acc.imgNAME}` : 'https://placehold.co/800x600/0d0d26/ffd700?text=AOV',
+      images:      acc.imgNAME ? [`/acc_img/${acc.imgNAME}`] : [],
+      contact:     {},
+      tags:        [],
+    }));
+  } catch(e) {
+    // Fallback to default sample data if API unavailable
+    return JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+  }
+}
+function saveAccounts() {
+  // No-op: data is managed by admin.html via API
+}
+let accountsData = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+
+/* =====================================================
+   STATE
+   ===================================================== */
+const S = {
+  page:'list',          // 'list' | 'detail' | 'admin'
+  accountId:null,
+  filterRank:'all',
+  sortBy:'default',
+  searchQuery:'',
+  searchInput:'',
+  priceMin:'',
+  priceMax:'',
+  listPage:1,           // current page on list view
+  activeImg:0,
+  lightboxOpen:false,
+  contactOpen:false,    // which account id, or null for generic
+  loginOpen:false,
+  isLoggedIn:false,
+  currentUser:null,     // { name, email, id }
+  loginError:'',
+  copied:false,
+  // admin
+  adminTab:'listings',  // 'listings'
+  formOpen:false,       // add / edit modal
+  formMode:'add',       // 'add' | 'edit'
+  formId:null,          // id being edited
+  formError:'',
+  deleteConfirmId:null,
+};
+
+/* =====================================================
+   UTILS
+   ===================================================== */
+function esc(s){if(typeof s!=='string')return String(s??'');return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function fmt(n){return Number(n).toLocaleString('zh-TW')}
+function rankClass(r){return{傳說:'rk-legend',鑽石:'rk-diamond',宗師:'rk-master'}[r]||'rk-champ'}
+function nextId(){return accountsData.length?Math.max(...accountsData.map(a=>a.id))+1:1}
+
+function filteredList(){
+  let items=[...accountsData];
+  const q=S.searchQuery.toLowerCase();
+  if(S.filterRank!=='all') items=items.filter(a=>a.rank===S.filterRank);
+  if(q){
+    const qn=Number(q);
+    const isNum=q.trim()!==''&&!isNaN(qn)&&q.trim()!=='';
+    items=items.filter(a=>(a.title||'').toLowerCase().includes(q)||(isNum&&a.price===qn));
+  }
+  const pMin=S.priceMin!==''?Number(S.priceMin):null;
+  const pMax=S.priceMax!==''?Number(S.priceMax):null;
+  if(pMin!==null&&!isNaN(pMin)) items=items.filter(a=>a.price>=pMin);
+  if(pMax!==null&&!isNaN(pMax)) items=items.filter(a=>a.price<=pMax);
+  if(S.sortBy==='price-asc')  items.sort((a,b)=>a.price-b.price);
+  if(S.sortBy==='price-desc') items.sort((a,b)=>b.price-a.price);
+  if(S.sortBy==='skins-desc') items.sort((a,b)=>b.skinCount-a.skinCount);
+  return items;
+}
+
+/* =====================================================
+   RENDER
+   ===================================================== */
+function render(){
+  document.getElementById('app').innerHTML=
+    renderNav()+
+    (S.page==='list'   ? renderListPage()   :
+     S.page==='detail' ? renderDetailPage() :
+     S.page==='admin'  ? renderAdminPage()  : '')+
+    renderFooter()+
+    (S.contactOpen!==false ? renderContactModal()  : '')+
+    (S.loginOpen             ? renderLoginModal()    : '')+
+    (S.lightboxOpen          ? renderLightbox()      : '')+
+    (S.formOpen              ? renderFormModal()     : '')+
+    (S.deleteConfirmId!==null? renderDeleteConfirm() : '');
+  attachEvents();
+}
+
+/* ── NAV ── */
+function renderNav(){
+  const isAdmin=S.page==='admin';
+  return `
+  <nav class="glass-dark border-b" style="border-color:rgba(255,215,0,.1)">
+    <div class="max-w-7xl mx-auto px-4 nav-main-row" style="display:flex;align-items:center;gap:.75rem;padding-top:.65rem;padding-bottom:.65rem">
+      <button onclick="goHome()" style="display:flex;align-items:center;gap:.55rem;background:none;border:none;cursor:pointer;flex-shrink:0">
+        <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#7B2FBE)">⚔</div>
+        <div class="hidden sm:block" style="text-align:left;line-height:1.25">
+          <div class="tg-gold" style="font-weight:900;font-size:.85rem">傳說對決</div>
+        </div>
+      </button>
+
+      ${!isAdmin?`
+      <div class="nav-search-wrap" style="flex:1;position:relative;max-width:480px;margin:0 auto">
+        <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);width:.9rem;height:.9rem;pointer-events:none;color:rgba(255,255,255,.32)" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="text" class="search-bar" id="searchInput" placeholder="搜尋價格" value="${esc(S.searchInput)}" oninput="S.searchInput=this.value" onkeydown="if(event.key==='Enter')handleSearch(this.value)" style="padding-right:2.8rem"/>
+        <button onclick="handleSearch(document.getElementById('searchInput').value)" style="position:absolute;right:.4rem;top:50%;transform:translateY(-50%);background:rgba(255,215,0,.2);border:1px solid rgba(255,215,0,.35);color:#FFD700;border-radius:.5rem;padding:.22rem .55rem;cursor:pointer;font-size:.75rem;font-weight:700">搜尋</button>
+      </div>
+      `:isAdmin?`<div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.55)">商家後台</div>`:'<div style="flex:1"></div>'}
+
+      <button onclick="openContactModal(null)" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.35rem;padding:.38rem .8rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);cursor:pointer" onmouseover="this.style.borderColor='rgba(255,215,0,.4)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.color='rgba(255,255,255,.75)'">
+        💬 <span class="nav-contact-text">聯繫我們</span>
+      </button>
+
+      ${S.isLoggedIn?`
+      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+        <button onclick="goAdmin()" class="nav-action-btn" style="padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:600;background:${isAdmin?'rgba(255,215,0,.18)':'rgba(255,255,255,.07)'};border:1px solid ${isAdmin?'rgba(255,215,0,.4)':'rgba(255,255,255,.15)'};color:${isAdmin?'#FFD700':'rgba(255,255,255,.65)'};cursor:pointer">
+          ⚙ 後台
+        </button>
+        <button onclick="handleLogout()" class="nav-action-btn" style="font-size:.7rem;color:rgba(255,255,255,.3);background:none;border:none;cursor:pointer;padding:.38rem .3rem" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.3)'">登出</button>
+      </div>
+      `:''}
+    </div>
+  </nav>`;
+}
+
+/* ── LIST PAGE ── */
+const LIST_PER_PAGE = 40;
+
+function renderListPage(){
+  const items=filteredList();
+  const avail=accountsData.filter(a=>!a.sold).length;
+  const totalPages=Math.max(1,Math.ceil(items.length/LIST_PER_PAGE));
+  if(S.listPage>totalPages) S.listPage=totalPages;
+  const start=(S.listPage-1)*LIST_PER_PAGE;
+  const pageItems=items.slice(start,start+LIST_PER_PAGE);
+
+  const pgBtn=(label,p,disabled,active=false)=>
+    `<button onclick="goListPage(${p})" style="min-width:2.1rem;height:2.1rem;padding:0 .6rem;border-radius:.45rem;font-size:.8rem;font-weight:700;cursor:${disabled?'default':'pointer'};border:1px solid ${active?'rgba(255,215,0,.6)':'rgba(255,255,255,.12)'};background:${active?'rgba(255,215,0,.15)':'rgba(255,255,255,.04)'};color:${active?'#FFD700':disabled?'rgba(255,255,255,.2)':'rgba(255,255,255,.65)'}" ${disabled?'disabled':''}>${label}</button>`;
+
+  const buildPagination=()=>{
+    if(totalPages<=1)return'';
+    const parts=[];
+    parts.push(pgBtn('‹',S.listPage-1,S.listPage===1));
+    let lo=Math.max(1,S.listPage-2),hi=Math.min(totalPages,S.listPage+2);
+    if(lo>1){parts.push(pgBtn('1',1,false,S.listPage===1));if(lo>2)parts.push(`<span style="color:rgba(255,255,255,.25);font-size:.82rem">…</span>`);}
+    for(let i=lo;i<=hi;i++)parts.push(pgBtn(i,i,false,i===S.listPage));
+    if(hi<totalPages){if(hi<totalPages-1)parts.push(`<span style="color:rgba(255,255,255,.25);font-size:.82rem">…</span>`);parts.push(pgBtn(totalPages,totalPages,false,S.listPage===totalPages));}
+    parts.push(pgBtn('›',S.listPage+1,S.listPage===totalPages));
+    return`<div style="display:flex;justify-content:center;align-items:center;gap:.4rem;padding:1.5rem 0 .5rem;flex-wrap:wrap">${parts.join('')}</div>
+    <div style="text-align:center;font-size:.75rem;color:rgba(255,255,255,.28);margin-bottom:.5rem">第 ${S.listPage} / ${totalPages} 頁，共 ${items.length} 個帳號</div>`;
+  };
+
+  return `
+  <div class="max-w-7xl mx-auto px-3 sm:px-4 pb-16">
+    <div style="padding:1.4rem 0 .9rem;display:flex;flex-wrap:wrap;align-items:center;gap:.75rem">
+      <div>
+        <h1 class="tg-wg" style="font-size:1.4rem;font-weight:900;line-height:1.3">傳說對決 AOV · 帳號展示</h1>
+        <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">共 <strong style="color:#FFD700">${avail}</strong> 個帳號在售</p>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:.75rem;padding-bottom:.9rem;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;gap:.4rem;overflow-x:auto;flex:1" class="scrollbar-hide">
+        ${[{k:'all',l:'全部',c:'all'}].map(f=>`
+          <button onclick="setFilter('${f.k}')" class="fpill ${S.filterRank===f.k?`fp-active-${f.c}`:''}"> ${f.l}</button>
+        `).join('')}
+      </div>
+      <select class="sort-sel" onchange="setSort(this.value)">
+        <option value="default"    ${S.sortBy==='default'?'selected':''}>預設排序</option>
+        <option value="price-asc"  ${S.sortBy==='price-asc'?'selected':''}>價格 低→高</option>
+        <option value="price-desc" ${S.sortBy==='price-desc'?'selected':''}>價格 高→低</option>
+      </select>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:.5rem;padding:.6rem 0 .75rem;flex-wrap:wrap">
+      <span style="font-size:.76rem;color:rgba(255,255,255,.4);flex-shrink:0">價格區間</span>
+      <input type="number" min="0" placeholder="最低價" value="${esc(S.priceMin)}"
+        oninput="S.priceMin=this.value;S.listPage=1"
+        onchange="render()"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        style="width:90px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;border-radius:.55rem;padding:.3rem .6rem;font-size:.78rem"/>
+      <span style="color:rgba(255,255,255,.25);font-size:.82rem">—</span>
+      <input type="number" min="0" placeholder="最高價" value="${esc(S.priceMax)}"
+        oninput="S.priceMax=this.value;S.listPage=1"
+        onchange="render()"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        style="width:90px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;border-radius:.55rem;padding:.3rem .6rem;font-size:.78rem"/>
+      ${(S.priceMin!==''||S.priceMax!=='')?`<button onclick="S.priceMin='';S.priceMax='';S.listPage=1;render()" style="font-size:.72rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;padding:.2rem .4rem" onmouseover="this.style.color='#FFD700'" onmouseout="this.style.color='rgba(255,255,255,.35)'">✕ 清除</button>`:''}
+    </div>
+
+    ${(S.searchQuery||S.filterRank!=='all'||S.priceMin!==''||S.priceMax!=='')?`<div style="padding:.35rem 0 .55rem;font-size:.78rem;color:rgba(255,255,255,.38)">${S.searchQuery?`搜尋「<span style="color:#FFD700">${esc(S.searchQuery)}</span>」 `:''}${(S.priceMin!==''||S.priceMax!=='')?`價格 <span style="color:#FFD700">${S.priceMin||'0'} ~ ${S.priceMax||'∞'}</span> `:''}找到 <strong style="color:#fff">${items.length}</strong> 個帳號</div>`:''}
+
+    ${items.length===0?`
+      <div style="text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
+        <div style="font-size:3rem;margin-bottom:1rem">🔍</div>
+        <div style="font-size:1rem;font-weight:600">找不到符合條件的帳號</div>
+      </div>
+    `:`
+      <div class="pcard-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:.9rem;padding-top:.9rem">
+        ${pageItems.map(renderProductCard).join('')}
+      </div>
+      ${buildPagination()}
+    `}
+  </div>`;
+}
+
+/* ── PRODUCT CARD ── */
+function renderProductCard(acc){
+  const leg=acc.rank==='傳說';
+  return `
+  <div class="pcard ${leg&&!acc.sold?'shimmer':''}" style="${leg&&!acc.sold?'border-color:rgba(255,215,0,.28)':''}" onclick="goDetail(${acc.id})">
+    <div class="thumb-wrap">
+      <img class="thumb" src="${esc(acc.coverImage)}" alt="${esc(acc.title)}" onerror="this.src='https://placehold.co/800x600/0d0d26/ffd700?text=AOV'"/>
+      ${acc.sold?`<div style="position:absolute;inset:0;background:rgba(7,7,26,.72);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:rgba(239,68,68,.9);color:#fff;font-size:.8rem;font-weight:900;padding:.3rem 1rem;border-radius:999px">已售出</span></div>`:''}
+    </div>
+    <div style="padding:.65rem .75rem .8rem;flex:1;display:flex;flex-direction:column;gap:.35rem">
+      <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.25rem">
+        <div class="tg-gold" style="font-size:1rem;font-weight:900">NT$ ${fmt(acc.price)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── DETAIL PAGE ── */
+function renderDetailPage(){
+  const acc=accountsData.find(a=>a.id===S.accountId);
+  if(!acc) return`<div style="text-align:center;padding:8rem 0;color:rgba(255,255,255,.4)">帳號不存在</div>`;
+  const imgs=acc.images&&acc.images.length?acc.images:[acc.coverImage];
+  const cur=imgs[S.activeImg]||imgs[0];
+  const leg=acc.rank==='傳說';
+  const c=acc.contact||{};
+  return `
+  <div class="max-w-5xl mx-auto px-3 sm:px-4 py-5 pb-16">
+    <div class="breadcrumb" style="display:flex;align-items:center;margin-bottom:1rem">
+      <a onclick="goHome()">首頁</a><span>›</span>
+      <a onclick="goHome()">帳號列表</a><span>›</span>
+      <span style="font-size:.78rem;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(acc.title)}</span>
+    </div>
+
+    <div id="detailGrid" style="display:grid;grid-template-columns:1fr;gap:1.25rem">
+
+      <!-- Images -->
+      <div>
+        <div class="${leg?'shimmer':''}" onclick="openLightbox()" style="border-radius:.9rem;overflow:hidden;border:2px solid ${leg?'rgba(255,215,0,.5)':'rgba(255,255,255,.1)'};margin-bottom:.5rem;cursor:zoom-in">
+          <img id="mainImg" class="detail-main-img" src="${esc(cur)}" alt="${esc(acc.title)}" onerror="this.src='https://placehold.co/1200x900/0d0d26/ffd700?text=AOV'"/>
+        </div>
+        ${imgs.length>1?`
+          <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.25rem" class="scrollbar-hide">
+            ${imgs.map((img,i)=>`<img src="${esc(img)}" class="img-thumb ${S.activeImg===i?'active':''}" onclick="setActiveImg(${i})" onerror="this.src='https://placehold.co/100x75/0d0d26/ffd700?text=${i+1}'"/>`).join('')}
+          </div>
+        `:''}
+      </div>
+
+      <!-- Info -->
+      <div id="infoCol">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.7rem">
+          <span class="${rankClass(acc.rank)}" style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px">⚔ ${esc(acc.rank)}</span>
+          ${acc.sold?`<span style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35)">已售出</span>`:`<span style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3)">✅ 可購買</span>`}
+          ${acc.isNew?`<span style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(99,179,237,.15);color:#63B3ED;border:1px solid rgba(99,179,237,.3)">🆕 新上架</span>`:''}
+        </div>
+        <h1 style="font-size:1.2rem;font-weight:900;color:#fff;line-height:1.4;margin-bottom:.8rem">${esc(acc.title)}</h1>
+
+        <!-- Price -->
+        <div style="background:linear-gradient(135deg,rgba(255,215,0,.07),rgba(255,165,0,.04));border:1px solid rgba(255,215,0,.18);border-radius:.85rem;padding:.85rem 1rem;margin-bottom:1rem">
+          <div style="font-size:.7rem;color:rgba(255,255,255,.38);margin-bottom:.2rem">售價</div>
+          <div class="tg-gold" style="font-size:2rem;font-weight:900;line-height:1">NT$ ${fmt(acc.price)}</div>
+        </div>
+
+
+        ${!acc.sold?`<button onclick="openContactModal(${acc.id})" class="pulse-glow" style="width:100%;padding:.9rem;border-radius:.85rem;font-weight:900;font-size:1rem;background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A;border:none;cursor:pointer" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">💬 立即詢問購買</button>`:`<div style="width:100%;padding:.9rem;border-radius:.85rem;text-align:center;font-weight:900;font-size:1rem;background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.3);color:#f87171">此帳號已售出</div>`}
+      </div>
+    </div>
+
+    <!-- Related -->
+    ${(()=>{const rel=accountsData.filter(a=>a.id!==acc.id&&!a.sold).slice(0,6);if(!rel.length)return'';return`
+      <div style="margin-top:2.5rem">
+        <h2 style="font-size:.92rem;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:.85rem;padding-bottom:.55rem;border-bottom:1px solid rgba(255,255,255,.07)">其他在售帳號</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:.75rem">
+          ${rel.map(a=>`<div onclick="goDetail(${a.id})" style="background:#0D0D26;border:1px solid rgba(255,255,255,.07);border-radius:.75rem;overflow:hidden;cursor:pointer;transition:transform .22s,box-shadow .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(255,215,0,.13)'" onmouseout="this.style.transform='';this.style.boxShadow=''"><img src="${esc(a.coverImage)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block" onerror="this.src='https://placehold.co/400x300/0d0d26/ffd700?text=AOV'"/><div style="padding:.5rem .6rem .65rem"><div style="font-size:.75rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.title)}</div><div class="tg-gold" style="font-size:.8rem;font-weight:900;margin-top:.2rem">NT$ ${fmt(a.price)}</div></div></div>`).join('')}
+        </div>
+      </div>
+    `;})()}
+  </div>
+  <script>(function(){const g=document.getElementById('detailGrid');if(g&&window.innerWidth>=768)g.style.gridTemplateColumns='55% 1fr';})()<\/script>`;
+}
+
+/* ── ADMIN PAGE ── */
+function renderAdminPage(){
+  if(!S.isLoggedIn) return`<div style="text-align:center;padding:8rem 1rem"><div style="font-size:2rem;margin-bottom:1rem">🔒</div><div style="color:rgba(255,255,255,.5);margin-bottom:1.5rem">請先登入才能使用後台</div><button onclick="openLogin()" class="btn btn-gold" style="font-size:.95rem;padding:.65rem 1.75rem">前往登入</button></div>`;
+
+  // seller's own listings
+  const mine=accountsData.filter(a=>a.sellerId===S.currentUser.id);
+  const avail=mine.filter(a=>!a.sold).length;
+  const sold=mine.filter(a=>a.sold).length;
+
+  return`
+  <div class="max-w-4xl mx-auto px-3 sm:px-4 py-6 pb-16">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem">
+      <div>
+        <h1 style="font-size:1.3rem;font-weight:900;color:#fff">⚙ 商家後台</h1>
+        <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">歡迎回來，${esc(S.currentUser.name)}</p>
+      </div>
+      <button onclick="openFormAdd()" class="btn btn-gold" style="display:flex;align-items:center;gap:.4rem;padding:.55rem 1.1rem;font-size:.85rem">
+        <span style="font-size:1rem;line-height:1">＋</span> 新增帳號
+      </button>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.5rem">
+      ${[['📦',mine.length,'總帖子數'],['✅',avail,'在售中'],['🔒',sold,'已售出']].map(([ic,n,lb])=>`
+        <div class="glass" style="padding:.85rem;text-align:center">
+          <div style="font-size:1.5rem;margin-bottom:.2rem">${ic}</div>
+          <div class="tg-gold" style="font-size:1.5rem;font-weight:900">${n}</div>
+          <div style="font-size:.72rem;color:rgba(255,255,255,.4)">${lb}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Listings -->
+    <div style="background:#0D0D26;border:1px solid rgba(255,255,255,.08);border-radius:1rem;overflow:hidden">
+      <div style="padding:.85rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-weight:700;font-size:.9rem">我的帳號列表</span>
+        <span style="font-size:.75rem;color:rgba(255,255,255,.35)">${mine.length} 筆</span>
+      </div>
+      ${mine.length===0?`
+        <div style="padding:3rem;text-align:center;color:rgba(255,255,255,.35)">
+          <div style="font-size:2.5rem;margin-bottom:.75rem">📭</div>
+          <div style="font-size:.9rem">還沒有發布任何帳號</div>
+          <button onclick="openFormAdd()" style="margin-top:1rem;padding:.5rem 1.2rem;border-radius:.6rem;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.3);color:#FFD700;cursor:pointer;font-size:.82rem;font-weight:700">立即新增</button>
+        </div>
+      `:`
+        <div style="display:flex;flex-direction:column;gap:0">
+          ${mine.map((acc,idx)=>`
+            <div class="admin-card" style="border-radius:0;border-left:none;border-right:none;border-top:${idx===0?'none':'1px solid rgba(255,255,255,.07)'};border-bottom:none">
+              <img class="admin-thumb" src="${esc(acc.coverImage)}" onerror="this.src='https://placehold.co/90x68/0d0d26/ffd700?text=AOV'"/>
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem">
+                  <span class="${rankClass(acc.rank)}" style="font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:999px;flex-shrink:0">${esc(acc.rank)}</span>
+                  ${acc.sold?`<span style="font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:999px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);flex-shrink:0">已售出</span>`:`<span style="font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:999px;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);flex-shrink:0">在售</span>`}
+                  ${acc.isNew?`<span style="font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:999px;background:rgba(99,179,237,.15);color:#63B3ED;border:1px solid rgba(99,179,237,.3);flex-shrink:0">新上架</span>`:''}
+                </div>
+                <div style="font-size:.85rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:.25rem">${esc(acc.title)}</div>
+                <div style="display:flex;gap:.75rem;flex-wrap:wrap;font-size:.75rem;color:rgba(255,255,255,.45)">
+                  <span class="tg-gold" style="font-weight:700;-webkit-text-fill-color:unset;background:none;color:#FFD700">NT$ ${fmt(acc.price)}</span>
+                  <span>✨ ${acc.skinCount} 造型</span>
+                  <span>⚔️ ${acc.heroCount} 英雄</span>
+                </div>
+              </div>
+              <!-- Actions -->
+              <div class="admin-actions" style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
+                <button onclick="goDetail(${acc.id})" class="btn btn-outline" style="padding:.32rem .7rem;font-size:.72rem">預覽</button>
+                <button onclick="openFormEdit(${acc.id})" class="btn btn-outline" style="padding:.32rem .7rem;font-size:.72rem">✏ 編輯</button>
+                <button onclick="toggleSold(${acc.id})" class="btn ${acc.sold?'btn-green':'btn-outline'}" style="padding:.32rem .7rem;font-size:.72rem">${acc.sold?'↩ 上架':'✓ 售出'}</button>
+                <button onclick="confirmDelete(${acc.id})" class="btn btn-red" style="padding:.32rem .7rem;font-size:.72rem">🗑 刪除</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    </div>
+  </div>`;
+}
+
+/* ── FORM MODAL (Add / Edit) ── */
+function renderFormModal(){
+  const isEdit=S.formMode==='edit';
+  const acc=isEdit?accountsData.find(a=>a.id===S.formId):null;
+  const v=(f,def='')=>esc(String(acc?acc[f]??def:def));
+  const vc=(f,def='')=>esc(String(acc?.contact?.[f]??def));
+  const imagesVal=acc?acc.images.join('\n'):'';
+
+  return`
+  <div class="modal-backdrop" onclick="closeForm()" style="align-items:flex-start;padding-top:2rem">
+    <div class="modal-box glass" style="width:100%;max-width:560px;padding:1.5rem;border-color:rgba(255,215,0,.25)" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <h2 style="font-weight:900;font-size:1.05rem;color:#fff">${isEdit?'✏ 編輯帳號':'＋ 新增帳號'}</h2>
+        <button onclick="closeForm()" style="font-size:1.6rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
+      </div>
+
+      ${S.formError?`<div style="margin-bottom:.8rem;padding:.5rem .85rem;border-radius:.6rem;font-size:.78rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171">${esc(S.formError)}</div>`:''}
+
+      <!-- Section: 基本資訊 -->
+      <div style="font-size:.72rem;font-weight:700;color:rgba(255,215,0,.7);letter-spacing:.05em;margin-bottom:.6rem;padding-bottom:.3rem;border-bottom:1px solid rgba(255,215,0,.12)">基本資訊</div>
+
+      <div class="form-group">
+        <label class="form-label">帳號標題 *</label>
+        <input id="f_title" class="inp" placeholder="例：傳說 旗艦帳號 108英雄 限定皮膚" value="${v('title')}"/>
+      </div>
+      <div class="form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-group">
+          <label class="form-label">售價 (NT$) *</label>
+          <input id="f_price" class="inp" type="number" min="0" placeholder="10000" value="${v('price')}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">段位 *</label>
+          <select id="f_rank" class="inp">
+            ${['傳說','鑽石','宗師','其他'].map(r=>`<option value="${r}" ${(acc?.rank||'傳說')===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">英雄數</label>
+          <input id="f_heroCount" class="inp" type="number" min="0" placeholder="51" value="${v('heroCount')}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">造型數 *</label>
+          <input id="f_skinCount" class="inp" type="number" min="0" placeholder="71" value="${v('skinCount')}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">勝率</label>
+          <input id="f_winRate" class="inp" placeholder="61.7%" value="${v('winRate')}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">對戰場次</label>
+          <input id="f_matches" class="inp" type="number" min="0" placeholder="668" value="${v('matches')}"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:1.5rem;margin-bottom:.85rem">
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:rgba(255,255,255,.6);cursor:pointer">
+          <input type="checkbox" id="f_isNew" ${acc?.isNew?'checked':''} style="accent-color:#FFD700;width:15px;height:15px"/> 標示為新上架
+        </label>
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:rgba(255,255,255,.6);cursor:pointer">
+          <input type="checkbox" id="f_sold" ${acc?.sold?'checked':''} style="accent-color:#f87171;width:15px;height:15px"/> 標示已售出
+        </label>
+      </div>
+
+      <!-- Section: 圖片 -->
+      <div style="font-size:.72rem;font-weight:700;color:rgba(255,215,0,.7);letter-spacing:.05em;margin-bottom:.6rem;padding-bottom:.3rem;border-bottom:1px solid rgba(255,215,0,.12)">圖片</div>
+      <div class="form-group">
+        <label class="form-label">封面圖片網址 *</label>
+        <input id="f_cover" class="inp" placeholder="https://... 或 acc.jpg（本機圖片）" value="${v('coverImage')}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">其他截圖網址（每行一個）</label>
+        <textarea id="f_images" class="inp" placeholder="https://pic1.jpg&#10;https://pic2.jpg">${esc(imagesVal)}</textarea>
+      </div>
+
+
+      <!-- Submit -->
+      <div style="display:flex;gap:.65rem;margin-top:.5rem">
+        <button onclick="closeForm()" class="btn btn-outline" style="flex:1;padding:.65rem">取消</button>
+        <button onclick="submitForm()" class="btn btn-gold" style="flex:2;padding:.65rem;font-size:.92rem">
+          ${isEdit?'💾 儲存變更':'🚀 發布帳號'}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── DELETE CONFIRM ── */
+function renderDeleteConfirm(){
+  const acc=accountsData.find(a=>a.id===S.deleteConfirmId);
+  if(!acc) return'';
+  return`
+  <div class="modal-backdrop" onclick="S.deleteConfirmId=null;render()">
+    <div class="modal-box glass" style="width:100%;max-width:340px;padding:1.5rem;text-align:center;border-color:rgba(239,68,68,.3)" onclick="event.stopPropagation()">
+      <div style="font-size:2rem;margin-bottom:.75rem">🗑</div>
+      <h2 style="font-weight:900;font-size:1rem;color:#fff;margin-bottom:.5rem">確認刪除？</h2>
+      <p style="font-size:.82rem;color:rgba(255,255,255,.45);margin-bottom:1.25rem;line-height:1.5">「${esc(acc.title)}」<br/>刪除後無法恢復</p>
+      <div style="display:flex;gap:.65rem">
+        <button onclick="S.deleteConfirmId=null;render()" class="btn btn-outline" style="flex:1;padding:.6rem">取消</button>
+        <button onclick="deleteAccount(${acc.id})" class="btn btn-red" style="flex:1;padding:.6rem;font-weight:900">確認刪除</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── CONTACT MODAL ── */
+function renderContactModal(){
+  return`
+  <div class="modal-backdrop" onclick="closeContact()">
+    <div class="modal-box glass" style="width:100%;max-width:340px;padding:1.4rem;border-color:rgba(255,215,0,.28)" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <h2 class="tg-gold" style="font-weight:900;font-size:1.05rem">📞 聯繫我們</h2>
+        <button onclick="closeContact()" style="font-size:1.6rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.7rem;padding:.5rem 0">
+        <a href="https://www.facebook.com/hsieh1010" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:.75rem;background:rgba(24,119,242,.15);border:1px solid rgba(24,119,242,.4);color:#fff;text-decoration:none;font-weight:700;font-size:.92rem;transition:background .18s" onmouseover="this.style.background='rgba(24,119,242,.28)'" onmouseout="this.style.background='rgba(24,119,242,.15)'">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.887v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+          Facebook
+          <span style="margin-left:auto;font-size:.75rem;color:rgba(255,255,255,.4)">hsieh1010</span>
+        </a>
+        <a href="https://www.instagram.com/gojo_garena_shop?igsh=aG0zNHZ0dXRkOGJx&utm_source=qr" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:.75rem;background:rgba(225,48,108,.12);border:1px solid rgba(225,48,108,.35);color:#fff;text-decoration:none;font-weight:700;font-size:.92rem;transition:background .18s" onmouseover="this.style.background='rgba(225,48,108,.25)'" onmouseout="this.style.background='rgba(225,48,108,.12)'">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="url(#ig-grad)"><defs><linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#E1306C"/><stop offset="100%" stop-color="#833AB4"/></linearGradient></defs><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+          Instagram
+          <span style="margin-left:auto;font-size:.75rem;color:rgba(255,255,255,.4)">gojo_garena_shop</span>
+        </a>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── LOGIN MODAL ── */
+function renderLoginModal(){
+  return`
+  <div class="modal-backdrop" onclick="closeLogin()">
+    <div class="modal-box glass" style="width:100%;max-width:340px;padding:1.4rem;border-color:rgba(255,215,0,.28)" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.3rem">
+        <h2 style="font-weight:900;font-size:1.05rem;background:linear-gradient(135deg,#FFD700,#B47FFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">商家登入</h2>
+        <button onclick="closeLogin()" style="font-size:1.6rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
+      </div>
+      <div style="display:flex;justify-content:center;margin-bottom:1.2rem">
+        <div style="width:3.5rem;height:3.5rem;border-radius:.85rem;display:flex;align-items:center;justify-content:center;font-size:1.6rem;background:linear-gradient(135deg,rgba(255,215,0,.15),rgba(123,47,190,.15));border:2px solid rgba(255,215,0,.25)">⚔</div>
+      </div>
+      ${S.loginError?`<div style="margin-bottom:.75rem;padding:.5rem .85rem;border-radius:.6rem;font-size:.77rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171">${esc(S.loginError)}</div>`:''}
+      <div style="margin-bottom:.75rem">
+        <label class="form-label">電子郵件</label>
+        <input type="email" id="loginEmail" class="inp" placeholder="your@email.com"/>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label class="form-label">密碼</label>
+        <input type="password" id="loginPassword" class="inp" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleLogin()"/>
+      </div>
+      <button onclick="handleLogin()" style="width:100%;padding:.65rem;border-radius:.7rem;font-weight:900;font-size:.92rem;background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A;border:none;cursor:pointer;box-shadow:0 0 18px rgba(255,215,0,.28)" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">登入</button>
+      <div style="text-align:center;margin-top:.9rem">
+        <span style="font-size:.78rem;color:rgba(255,255,255,.35)">還沒有帳號？請聯繫管理員申請</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── LIGHTBOX ── */
+function renderLightbox(){
+  const acc=accountsData.find(a=>a.id===S.accountId);if(!acc)return'';
+  const imgs=acc.images&&acc.images.length?acc.images:[acc.coverImage];
+  const cur=imgs[S.activeImg];
+  const hp=S.activeImg>0,hn=S.activeImg<imgs.length-1;
+  return`
+  <div class="modal-backdrop" onclick="closeLightbox()">
+    <div class="modal-box" style="position:relative;width:100%;max-width:1000px;display:flex;flex-direction:column;align-items:center" onclick="event.stopPropagation()">
+      <button onclick="closeLightbox()" style="position:absolute;top:-2.5rem;right:0;font-size:2rem;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">&times;</button>
+      <img src="${esc(cur)}" style="max-height:88vh;max-width:100%;border-radius:.85rem;object-fit:contain;display:block" onerror="this.src='https://placehold.co/1000x750/0d0d26/ffd700?text=AOV'"/>
+      ${imgs.length>1?`<div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem">
+        <button onclick="navImg(-1)" style="padding:.32rem 1rem;border-radius:.5rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:${hp?'#fff':'rgba(255,255,255,.2)'};cursor:${hp?'pointer':'default'};font-size:.82rem" ${!hp?'disabled':''}>← 上一張</button>
+        <span style="font-size:.82rem;color:rgba(255,255,255,.35)">${S.activeImg+1} / ${imgs.length}</span>
+        <button onclick="navImg(1)"  style="padding:.32rem 1rem;border-radius:.5rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:${hn?'#fff':'rgba(255,255,255,.2)'};cursor:${hn?'pointer':'default'};font-size:.82rem" ${!hn?'disabled':''}>下一張 →</button>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+/* ── FOOTER ── */
+function renderFooter(){
+  return`
+  <footer>
+    <div class="footer-inner">
+      <div class="tg-gold" style="font-size:.85rem;font-weight:700">⚔ 傳說對決 帳號展示平台</div>
+      <p class="copyright">© ${new Date().getFullYear()} AOV Account Shop · All rights reserved</p>
+    </div>
+  </footer>`;
+}
+
+/* =====================================================
+   HANDLERS
+   ===================================================== */
+function attachEvents(){
+  document.onkeydown=(e)=>{
+    if(S.lightboxOpen){if(e.key==='ArrowLeft')navImg(-1);if(e.key==='ArrowRight')navImg(1);if(e.key==='Escape')closeLightbox();}
+    else if(e.key==='Escape'){closeContact();closeLogin();closeForm();S.deleteConfirmId=null;}
+  };
+}
+
+/* Navigation */
+function goHome(){history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
+function goDetail(id){history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
+function goAdmin(){history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
+
+/* List */
+function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
+function setFilter(r){S.filterRank=r;S.listPage=1;render()}
+function setPriceRange(min,max){S.priceMin=min;S.priceMax=max;S.listPage=1;render()}
+function setSort(v){S.sortBy=v;S.listPage=1;render()}
+function goListPage(p){S.listPage=p;window.scrollTo({top:0,behavior:'smooth'});render()}
+
+/* Images */
+function setActiveImg(i){
+  S.activeImg=i;
+  const img=document.getElementById('mainImg');
+  if(img){const acc=accountsData.find(a=>a.id===S.accountId);if(acc){const imgs=acc.images&&acc.images.length?acc.images:[acc.coverImage];img.src=imgs[i]||imgs[0];}}
+  render();
+}
+function openLightbox(){S.lightboxOpen=true;document.body.style.overflow='hidden';render()}
+function closeLightbox(){S.lightboxOpen=false;document.body.style.overflow='';render()}
+function navImg(dir){
+  const acc=accountsData.find(a=>a.id===S.accountId);if(!acc)return;
+  const imgs=acc.images&&acc.images.length?acc.images:[acc.coverImage];
+  const n=S.activeImg+dir;if(n>=0&&n<imgs.length){S.activeImg=n;render();}
+}
+
+/* Contact */
+function openContactModal(id){S.contactOpen=id;S.copied=false;document.body.style.overflow='hidden';render()}
+function closeContact(){S.contactOpen=false;document.body.style.overflow='';render()}
+function copyContact(text){
+  const done=()=>{S.copied=true;render();setTimeout(()=>{S.copied=false;render();},2500)};
+  navigator.clipboard.writeText(text).then(done).catch(()=>{const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);done()});
+}
+
+/* Login */
+function openLogin(){S.loginOpen=true;S.loginError='';document.body.style.overflow='hidden';render()}
+function closeLogin(){S.loginOpen=false;document.body.style.overflow='';render()}
+function handleLogin(){
+  const e=document.getElementById('loginEmail')?.value||'';
+  const p=document.getElementById('loginPassword')?.value||'';
+  if(!e||!p){S.loginError='請填寫電子郵件和密碼';render();return}
+  if(!e.includes('@')){S.loginError='請輸入有效的電子郵件';render();return}
+  if(p.length<6){S.loginError='密碼至少需要 6 個字元';render();return}
+  /* TODO: const {data,error}=await supabase.auth.signInWithPassword({email:e,password:p}) */
+  const name=e.split('@')[0];
+  S.isLoggedIn=true;S.currentUser={name,email:e,id:e};
+  S.loginOpen=false;S.loginError='';document.body.style.overflow='';
+  goAdmin();
+}
+function handleLogout(){S.isLoggedIn=false;S.currentUser=null;goHome()}
+
+/* Admin: Add / Edit form */
+function openFormAdd(){S.formOpen=true;S.formMode='add';S.formId=null;S.formError='';document.body.style.overflow='hidden';render()}
+function openFormEdit(id){S.formOpen=true;S.formMode='edit';S.formId=id;S.formError='';document.body.style.overflow='hidden';render()}
+function closeForm(){S.formOpen=false;document.body.style.overflow='';render()}
+
+function submitForm(){
+  const g=id=>document.getElementById(id)?.value?.trim()||'';
+  const title=g('f_title'),price=parseInt(g('f_price')||'0'),rank=g('f_rank'),skinCount=parseInt(g('f_skinCount')||'0'),cover=g('f_cover');
+  if(!title){S.formError='請填寫帳號標題';render();return}
+  if(!price||price<1){S.formError='請填寫有效的售價';render();return}
+  if(!skinCount&&skinCount!==0){S.formError='請填寫造型數';render();return}
+  if(!cover){S.formError='請填寫封面圖片網址';render();return}
+
+  const imagesRaw=g('f_images');
+  const images=imagesRaw?imagesRaw.split('\n').map(s=>s.trim()).filter(Boolean):[cover];
+  if(!images.includes(cover))images.unshift(cover);
+  const tags=[];
+
+  const data={
+    title,price,rank,
+    rankClass:rankClass(rank),
+    heroCount:parseInt(g('f_heroCount')||'0'),
+    skinCount,
+    winRate:g('f_winRate')||'-',
+    matches:parseInt(g('f_matches')||'0'),
+    coverImage:cover,
+    images,
+    tags,
+    isNew:document.getElementById('f_isNew')?.checked||false,
+    sold:document.getElementById('f_sold')?.checked||false,
+    contact:{},
+    sellerId:S.currentUser?.id||'demo',
+  };
+
+  if(S.formMode==='add'){
+    accountsData.push({...data,id:nextId(),views:0});
+  } else {
+    const idx=accountsData.findIndex(a=>a.id===S.formId);
+    if(idx!==-1) accountsData[idx]={...accountsData[idx],...data};
+  }
+  saveAccounts();
+  S.formOpen=false;S.formError='';document.body.style.overflow='';render();
+}
+
+/* Admin: Toggle sold */
+function toggleSold(id){
+  const acc=accountsData.find(a=>a.id===id);if(!acc)return;
+  acc.sold=!acc.sold;saveAccounts();render();
+}
+
+/* Admin: Delete */
+function confirmDelete(id){S.deleteConfirmId=id;render()}
+function deleteAccount(id){
+  accountsData=accountsData.filter(a=>a.id!==id);
+  saveAccounts();S.deleteConfirmId=null;render();
+}
+
+/* =====================================================
+   ROUTER + INIT
+   ===================================================== */
+window.addEventListener('popstate',()=>{
+  const h=location.hash;
+  if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;S.activeImg=0;}}
+  else if(h==='#/admin'){S.page='admin';}
+  else{S.page='list';S.accountId=null;}
+  render();
+});
+
+(async()=>{
+  const h=location.hash;
+  if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;}}
+  else if(h==='#/admin'){S.page='admin';}
+  render(); // render immediately with default data
+  accountsData = await loadAccountsFromAPI();
+  render(); // re-render with real data from API
+})();
+</script>
+</body>
+</html>
