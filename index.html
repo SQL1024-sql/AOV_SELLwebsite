@@ -113,11 +113,32 @@
       #detailGrid{grid-template-columns:1fr!important}
       .detail-price{font-size:1.5rem!important}
       .nav-title{display:none}
-      .modal-box{margin:.5rem}
+      .modal-box{margin:.5rem;width:calc(100vw - 1rem)!important;max-width:100%!important}
       footer{padding:1rem .75rem}
+      /* Nav: 搜尋欄換行到第二行 */
+      .nav-main-row{flex-wrap:wrap!important;padding-bottom:.45rem!important}
+      .nav-search-wrap{order:10;width:100%;max-width:100%!important;margin:0 0 .15rem!important}
+      /* 聯繫按鈕只顯示 emoji */
+      .nav-contact-text{display:none}
+      /* 導覽按鈕縮小 padding */
+      .nav-action-btn{padding:.38rem .55rem!important}
+      /* Form modal: 單欄排列 */
+      .form-grid-2{grid-template-columns:1fr!important}
+      /* 後台操作按鈕：2×2 排列 */
+      .admin-actions{flex-direction:row!important;flex-wrap:wrap!important;flex-shrink:1!important;min-width:0!important;width:auto}
+      .admin-actions .btn{flex:1 1 calc(50% - .2rem);min-width:0;text-align:center;padding:.3rem .25rem!important;font-size:.68rem!important}
+      /* 後台卡片縮圖縮小 */
+      .admin-thumb{width:70px!important;height:52px!important}
+      /* 觸控目標 */
+      .fpill{min-height:36px;display:inline-flex;align-items:center}
+      .sort-sel{min-height:36px}
+      /* 詳情頁面 */
+      .detail-main-img{border-radius:.55rem!important}
+      .img-thumb{width:58px!important;height:42px!important}
     }
     @media(max-width:400px){
       .pcard-grid{grid-template-columns:1fr!important}
+      .admin-actions .btn{flex:1 1 100%}
     }
   </style>
 </head>
@@ -318,7 +339,7 @@ function renderNav(){
   const isAdmin=S.page==='admin';
   return `
   <nav class="glass-dark border-b" style="border-color:rgba(255,215,0,.1)">
-    <div class="max-w-7xl mx-auto px-4" style="display:flex;align-items:center;gap:.75rem;padding-top:.65rem;padding-bottom:.65rem">
+    <div class="max-w-7xl mx-auto px-4 nav-main-row" style="display:flex;align-items:center;gap:.75rem;padding-top:.65rem;padding-bottom:.65rem">
       <button onclick="goHome()" style="display:flex;align-items:center;gap:.55rem;background:none;border:none;cursor:pointer;flex-shrink:0">
         <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#7B2FBE)">⚔</div>
         <div class="hidden sm:block" style="text-align:left;line-height:1.25">
@@ -327,7 +348,7 @@ function renderNav(){
       </button>
 
       ${!isAdmin?`
-      <div style="flex:1;position:relative;max-width:480px;margin:0 auto">
+      <div class="nav-search-wrap" style="flex:1;position:relative;max-width:480px;margin:0 auto">
         <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);width:.9rem;height:.9rem;pointer-events:none;color:rgba(255,255,255,.32)" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
@@ -336,16 +357,16 @@ function renderNav(){
       </div>
       `:isAdmin?`<div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.55)">商家後台</div>`:'<div style="flex:1"></div>'}
 
-      <button onclick="openContactModal(null)" style="flex-shrink:0;display:flex;align-items:center;gap:.35rem;padding:.38rem .8rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);cursor:pointer" onmouseover="this.style.borderColor='rgba(255,215,0,.4)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.color='rgba(255,255,255,.75)'">
-        💬 聯繫我們
+      <button onclick="openContactModal(null)" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.35rem;padding:.38rem .8rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);cursor:pointer" onmouseover="this.style.borderColor='rgba(255,215,0,.4)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.color='rgba(255,255,255,.75)'">
+        💬 <span class="nav-contact-text">聯繫我們</span>
       </button>
 
       ${S.isLoggedIn?`
-      <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
-        <button onclick="goAdmin()" style="padding:.38rem .8rem;border-radius:.6rem;font-size:.75rem;font-weight:600;background:${isAdmin?'rgba(255,215,0,.18)':'rgba(255,255,255,.07)'};border:1px solid ${isAdmin?'rgba(255,215,0,.4)':'rgba(255,255,255,.15)'};color:${isAdmin?'#FFD700':'rgba(255,255,255,.65)'};cursor:pointer">
+      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+        <button onclick="goAdmin()" class="nav-action-btn" style="padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:600;background:${isAdmin?'rgba(255,215,0,.18)':'rgba(255,255,255,.07)'};border:1px solid ${isAdmin?'rgba(255,215,0,.4)':'rgba(255,255,255,.15)'};color:${isAdmin?'#FFD700':'rgba(255,255,255,.65)'};cursor:pointer">
           ⚙ 後台
         </button>
-        <button onclick="handleLogout()" style="font-size:.7rem;color:rgba(255,255,255,.3);background:none;border:none;cursor:pointer" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.3)'">登出</button>
+        <button onclick="handleLogout()" class="nav-action-btn" style="font-size:.7rem;color:rgba(255,255,255,.3);background:none;border:none;cursor:pointer;padding:.38rem .3rem" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.3)'">登出</button>
       </div>
       `:''}
     </div>
@@ -404,14 +425,16 @@ function renderListPage(){
     <div style="display:flex;align-items:center;gap:.5rem;padding:.6rem 0 .75rem;flex-wrap:wrap">
       <span style="font-size:.76rem;color:rgba(255,255,255,.4);flex-shrink:0">價格區間</span>
       <input type="number" min="0" placeholder="最低價" value="${esc(S.priceMin)}"
-        oninput="S.priceMin=this.value;S.listPage=1;render()"
-        style="width:90px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;border-radius:.55rem;padding:.3rem .6rem;font-size:.78rem"
-        onkeydown="if(event.key==='Enter')render()"/>
+        oninput="S.priceMin=this.value;S.listPage=1"
+        onchange="render()"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        style="width:90px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;border-radius:.55rem;padding:.3rem .6rem;font-size:.78rem"/>
       <span style="color:rgba(255,255,255,.25);font-size:.82rem">—</span>
       <input type="number" min="0" placeholder="最高價" value="${esc(S.priceMax)}"
-        oninput="S.priceMax=this.value;S.listPage=1;render()"
-        style="width:90px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;border-radius:.55rem;padding:.3rem .6rem;font-size:.78rem"
-        onkeydown="if(event.key==='Enter')render()"/>
+        oninput="S.priceMax=this.value;S.listPage=1"
+        onchange="render()"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        style="width:90px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;border-radius:.55rem;padding:.3rem .6rem;font-size:.78rem"/>
       ${(S.priceMin!==''||S.priceMax!=='')?`<button onclick="S.priceMin='';S.priceMax='';S.listPage=1;render()" style="font-size:.72rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;padding:.2rem .4rem" onmouseover="this.style.color='#FFD700'" onmouseout="this.style.color='rgba(255,255,255,.35)'">✕ 清除</button>`:''}
     </div>
 
@@ -576,7 +599,7 @@ function renderAdminPage(){
                 </div>
               </div>
               <!-- Actions -->
-              <div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
+              <div class="admin-actions" style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
                 <button onclick="goDetail(${acc.id})" class="btn btn-outline" style="padding:.32rem .7rem;font-size:.72rem">預覽</button>
                 <button onclick="openFormEdit(${acc.id})" class="btn btn-outline" style="padding:.32rem .7rem;font-size:.72rem">✏ 編輯</button>
                 <button onclick="toggleSold(${acc.id})" class="btn ${acc.sold?'btn-green':'btn-outline'}" style="padding:.32rem .7rem;font-size:.72rem">${acc.sold?'↩ 上架':'✓ 售出'}</button>
@@ -615,7 +638,7 @@ function renderFormModal(){
         <label class="form-label">帳號標題 *</label>
         <input id="f_title" class="inp" placeholder="例：傳說 旗艦帳號 108英雄 限定皮膚" value="${v('title')}"/>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      <div class="form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
         <div class="form-group">
           <label class="form-label">售價 (NT$) *</label>
           <input id="f_price" class="inp" type="number" min="0" placeholder="10000" value="${v('price')}"/>
