@@ -1,0 +1,12 @@
+node_modules/
+addACC.py
+venv/
+.venv/
+__pycache__/
+server.js
+package.json
+package-lock.json
+.vscode/
+.git/
+README.md
+圖片清單.xlsx
