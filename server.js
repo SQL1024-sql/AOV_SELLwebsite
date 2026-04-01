@@ -28,6 +28,13 @@ function requireAuth(req, res, next) {
 if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR, { recursive: true });
 
 app.use(express.json());
+
+/* Block direct static access to admin.html */
+app.use((req, res, next) => {
+  if (req.path === '/admin.html') return requireAuth(req, res, next);
+  next();
+});
+
 app.use(express.static(__dirname));
 
 /* ── Helper: read / write accounts.json ── */
