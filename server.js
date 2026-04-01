@@ -60,11 +60,11 @@ app.get('/api/accounts', (req, res) => {
 /* POST /api/accounts  — add new account (with optional image) */
 app.post('/api/accounts', upload.single('image'), (req, res) => {
   const accounts = readAccounts();
-  const { title, price } = req.body;
+  const { price } = req.body;
 
-  if (!title || !price) {
+  if (!price) {
     if (req.file) fs.unlinkSync(req.file.path);
-    return res.status(400).json({ error: '標題和價格為必填' });
+    return res.status(400).json({ error: '價格為必填' });
   }
 
   const newId = accounts.length ? Math.max(...accounts.map(a => a.id)) + 1 : 1;
@@ -80,7 +80,6 @@ app.post('/api/accounts', upload.single('image'), (req, res) => {
 
   const newAccount = {
     id:      newId,
-    title:   title.trim(),
     price:   Number(price),
     imgNAME: imgNAME,
   };
@@ -101,10 +100,10 @@ app.put('/api/accounts/:id', upload.single('image'), (req, res) => {
     return res.status(404).json({ error: '帳號不存在' });
   }
 
-  const { title, price } = req.body;
-  if (!title || !price) {
+  const { price } = req.body;
+  if (!price) {
     if (req.file) fs.unlinkSync(req.file.path);
-    return res.status(400).json({ error: '標題和價格為必填' });
+    return res.status(400).json({ error: '價格為必填' });
   }
 
   let imgNAME = accounts[idx].imgNAME;
@@ -124,7 +123,7 @@ app.put('/api/accounts/:id', upload.single('image'), (req, res) => {
     fs.renameSync(req.file.path, path.join(IMG_DIR, imgNAME));
   }
 
-  accounts[idx] = { ...accounts[idx], title: title.trim(), price: Number(price), imgNAME };
+  accounts[idx] = { ...accounts[idx], price: Number(price), imgNAME };
   writeAccounts(accounts);
   res.json(accounts[idx]);
 });

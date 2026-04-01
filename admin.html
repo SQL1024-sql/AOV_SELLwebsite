@@ -66,7 +66,6 @@
       <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#7B2FBE)">⚔</div>
       <div style="line-height:1.25">
         <div class="tg-gold" style="font-weight:900;font-size:.85rem">傳說對決</div>
-        <div style="font-size:.62rem;color:rgba(255,255,255,.38)">帳號展示平台</div>
       </div>
     </a>
     <div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.45)">/ 後台管理</div>
@@ -118,12 +117,6 @@
     </div>
 
     <form id="postForm" onsubmit="handleSubmit(event)">
-      <!-- Title -->
-      <div style="margin-bottom:.9rem">
-        <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">帳號標題 <span style="color:#f87171">*</span></label>
-        <input id="fTitle" class="inp" type="text" placeholder="例：傳說 高CP值帳號 全英雄解鎖" required maxlength="80"/>
-      </div>
-
       <!-- Price -->
       <div style="margin-bottom:.9rem">
         <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">售價 (NT$) <span style="color:#f87171">*</span></label>
@@ -227,7 +220,6 @@ function getFiltered() {
   const q = searchQuery.toLowerCase();
   if (!q) return accounts;
   return accounts.filter(acc =>
-    acc.title.toLowerCase().includes(q) ||
     String(acc.id).includes(q) ||
     String(acc.price).includes(q)
   );
@@ -258,10 +250,9 @@ function renderGrid() {
   list.innerHTML = `
     <div style="background:#0D0D26;border:1px solid rgba(255,255,255,.08);border-radius:.9rem;overflow:hidden">
       <!-- Table header -->
-      <div style="display:grid;grid-template-columns:3rem 4.5rem 1fr auto auto 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.07);text-transform:uppercase;letter-spacing:.04em">
+      <div style="display:grid;grid-template-columns:3rem 4.5rem auto auto 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.07);text-transform:uppercase;letter-spacing:.04em">
         <span>ID</span>
         <span>圖片</span>
-        <span>標題</span>
         <span>售價</span>
         <span style="text-align:center">圖檔</span>
         <span style="text-align:center">操作</span>
@@ -272,10 +263,9 @@ function renderGrid() {
           : 'https://placehold.co/120x90/0d0d26/555?text=No+Img';
         const rowBg = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.018)';
         return `
-        <div style="display:grid;grid-template-columns:3rem 4.5rem 1fr auto auto 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s" onmouseover="this.style.background='rgba(255,215,0,.04)'" onmouseout="this.style.background='${rowBg}'">
+        <div style="display:grid;grid-template-columns:3rem 4.5rem auto auto 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s" onmouseover="this.style.background='rgba(255,215,0,.04)'" onmouseout="this.style.background='${rowBg}'">
           <span style="font-size:.72rem;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums">${acc.id}</span>
           <img src="${escH(imgSrc)}" style="width:4.5rem;height:3.2rem;object-fit:cover;border-radius:.4rem;border:1px solid rgba(255,255,255,.08);display:block" onerror="this.src='https://placehold.co/120x90/0d0d26/555?text=No+Img'"/>
-          <div style="font-size:.82rem;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escH(acc.title)}">${escH(acc.title)}</div>
           <div style="font-size:.88rem;font-weight:900;color:#FFD700;white-space:nowrap">NT$&nbsp;${Number(acc.price).toLocaleString('zh-TW')}</div>
           <div style="text-align:center;font-size:.7rem;color:${acc.imgNAME ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.15)'}">
             ${acc.imgNAME ? `<span title="${escH(acc.imgNAME)}">🖼</span>` : '—'}
@@ -334,7 +324,6 @@ function openAddModal() {
   editId = null;
   document.getElementById('modalTitle').textContent = '新增貼文';
   document.getElementById('submitText').textContent  = '新增貼文';
-  document.getElementById('fTitle').value  = '';
   document.getElementById('fPrice').value  = '';
   document.getElementById('currentImgHint').style.display = 'none';
   clearImageState();
@@ -351,7 +340,6 @@ function openEditModal(id) {
   editId = id;
   document.getElementById('modalTitle').textContent = '編輯貼文';
   document.getElementById('submitText').textContent  = '儲存變更';
-  document.getElementById('fTitle').value = acc.title;
   document.getElementById('fPrice').value = acc.price;
 
   if (acc.imgNAME) {
@@ -419,16 +407,13 @@ async function handleSubmit(e) {
   e.preventDefault();
   clearError();
 
-  const title = document.getElementById('fTitle').value.trim();
   const price = document.getElementById('fPrice').value.trim();
   const file  = document.getElementById('fImage').files[0];
 
-  if (!title) { showError('請填寫帳號標題'); return; }
   if (!price || Number(price) <= 0) { showError('請填寫有效售價'); return; }
 
   setLoading(true);
   const fd = new FormData();
-  fd.append('title', title);
   fd.append('price', price);
   if (file) fd.append('image', file);
 

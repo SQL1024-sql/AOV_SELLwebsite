@@ -313,7 +313,6 @@ function renderNav(){
         <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#7B2FBE)">⚔</div>
         <div class="hidden sm:block" style="text-align:left;line-height:1.25">
           <div class="tg-gold" style="font-weight:900;font-size:.85rem">傳說對決</div>
-          <div style="font-size:.62rem;color:rgba(255,255,255,.38)">帳號展示平台</div>
         </div>
       </button>
 
@@ -419,7 +418,6 @@ function renderProductCard(acc){
       ${acc.sold?`<div style="position:absolute;inset:0;background:rgba(7,7,26,.72);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:rgba(239,68,68,.9);color:#fff;font-size:.8rem;font-weight:900;padding:.3rem 1rem;border-radius:999px">已售出</span></div>`:''}
     </div>
     <div style="padding:.65rem .75rem .8rem;flex:1;display:flex;flex-direction:column;gap:.35rem">
-      <div style="font-size:.82rem;font-weight:700;color:#fff;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(acc.title)}</div>
       <div style="flex:1"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.25rem">
         <div class="tg-gold" style="font-size:1rem;font-weight:900">NT$ ${fmt(acc.price)}</div>
