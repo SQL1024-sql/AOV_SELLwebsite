@@ -53,7 +53,7 @@ def generate_json_from_excel(excel_path, folder_path, output_json):
     print(f"完成！已產生 {len(result_json)} 筆資料到 {output_json}")
 
 # --- 修改成你的實際路徑 ---
-EXCEL_FILE = '圖片清單.xlsx'   # 你的 Excel 檔名
+EXCEL_FILE = '圖片xlsx'   # 你的 Excel 檔名
 IMAGE_FOLDER = './pic'     # 你的圖片資料夾
 OUTPUT_JSON = 'result.json'   # 要輸出的 JSON 檔名
 

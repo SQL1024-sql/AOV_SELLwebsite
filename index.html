@@ -213,7 +213,7 @@ async function loadAccountsFromAPI() {
     return data.map(acc => ({
       id:          acc.id,
       sellerId:    'admin',
-      title:       acc.title,
+      title:       acc.title || '',
       price:       acc.price,
       rank:        acc.rank || '其他',
       heroCount:   acc.heroCount  || 0,
@@ -278,7 +278,7 @@ function filteredList(){
   let items=[...accountsData];
   const q=S.searchQuery.toLowerCase();
   if(S.filterRank!=='all') items=items.filter(a=>a.rank===S.filterRank);
-  if(q) items=items.filter(a=>a.title.toLowerCase().includes(q)||String(a.price).includes(q));
+  if(q) items=items.filter(a=>(a.title||'').toLowerCase().includes(q)||String(a.price).includes(q));
   if(S.sortBy==='price-asc')  items.sort((a,b)=>a.price-b.price);
   if(S.sortBy==='price-desc') items.sort((a,b)=>b.price-a.price);
   if(S.sortBy==='skins-desc') items.sort((a,b)=>b.skinCount-a.skinCount);
