@@ -331,7 +331,7 @@ function renderNav(){
         <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);width:.9rem;height:.9rem;pointer-events:none;color:rgba(255,255,255,.32)" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-        <input type="text" class="search-bar" id="searchInput" placeholder="搜尋標題 / 精確價格" value="${esc(S.searchInput)}" oninput="S.searchInput=this.value" onkeydown="if(event.key==='Enter')handleSearch(this.value)" style="padding-right:2.8rem"/>
+        <input type="text" class="search-bar" id="searchInput" placeholder="搜尋價格" value="${esc(S.searchInput)}" oninput="S.searchInput=this.value" onkeydown="if(event.key==='Enter')handleSearch(this.value)" style="padding-right:2.8rem"/>
         <button onclick="handleSearch(document.getElementById('searchInput').value)" style="position:absolute;right:.4rem;top:50%;transform:translateY(-50%);background:rgba(255,215,0,.2);border:1px solid rgba(255,215,0,.35);color:#FFD700;border-radius:.5rem;padding:.22rem .55rem;cursor:pointer;font-size:.75rem;font-weight:700">搜尋</button>
       </div>
       `:isAdmin?`<div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.55)">商家後台</div>`:'<div style="flex:1"></div>'}
