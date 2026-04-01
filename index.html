@@ -248,6 +248,8 @@ const S = {
   sortBy:'default',
   searchQuery:'',
   searchInput:'',
+  priceMin:'',
+  priceMax:'',
   listPage:1,           // current page on list view
   activeImg:0,
   lightboxOpen:false,
@@ -278,7 +280,15 @@ function filteredList(){
   let items=[...accountsData];
   const q=S.searchQuery.toLowerCase();
   if(S.filterRank!=='all') items=items.filter(a=>a.rank===S.filterRank);
-  if(q) items=items.filter(a=>(a.title||'').toLowerCase().includes(q)||String(a.price).includes(q));
+  if(q){
+    const qn=Number(q);
+    const isNum=q.trim()!==''&&!isNaN(qn)&&q.trim()!=='';
+    items=items.filter(a=>(a.title||'').toLowerCase().includes(q)||(isNum&&a.price===qn));
+  }
+  const pMin=S.priceMin!==''?Number(S.priceMin):null;
+  const pMax=S.priceMax!==''?Number(S.priceMax):null;
+  if(pMin!==null&&!isNaN(pMin)) items=items.filter(a=>a.price>=pMin);
+  if(pMax!==null&&!isNaN(pMax)) items=items.filter(a=>a.price<=pMax);
   if(S.sortBy==='price-asc')  items.sort((a,b)=>a.price-b.price);
   if(S.sortBy==='price-desc') items.sort((a,b)=>b.price-a.price);
   if(S.sortBy==='skins-desc') items.sort((a,b)=>b.skinCount-a.skinCount);
@@ -321,7 +331,7 @@ function renderNav(){
         <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);width:.9rem;height:.9rem;pointer-events:none;color:rgba(255,255,255,.32)" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-        <input type="text" class="search-bar" id="searchInput" placeholder="搜尋帳號、段位…" value="${esc(S.searchInput)}" oninput="S.searchInput=this.value" onkeydown="if(event.key==='Enter')handleSearch(this.value)" style="padding-right:2.8rem"/>
+        <input type="text" class="search-bar" id="searchInput" placeholder="搜尋標題 / 精確價格" value="${esc(S.searchInput)}" oninput="S.searchInput=this.value" onkeydown="if(event.key==='Enter')handleSearch(this.value)" style="padding-right:2.8rem"/>
         <button onclick="handleSearch(document.getElementById('searchInput').value)" style="position:absolute;right:.4rem;top:50%;transform:translateY(-50%);background:rgba(255,215,0,.2);border:1px solid rgba(255,215,0,.35);color:#FFD700;border-radius:.5rem;padding:.22rem .55rem;cursor:pointer;font-size:.75rem;font-weight:700">搜尋</button>
       </div>
       `:isAdmin?`<div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.55)">商家後台</div>`:'<div style="flex:1"></div>'}
@@ -391,7 +401,21 @@ function renderListPage(){
       </select>
     </div>
 
-    ${S.searchQuery||S.filterRank!=='all'?`<div style="padding:.55rem 0;font-size:.78rem;color:rgba(255,255,255,.38)">${S.searchQuery?`搜尋「<span style="color:#FFD700">${esc(S.searchQuery)}</span>」`:''}找到 <strong style="color:#fff">${items.length}</strong> 個帳號</div>`:''}
+    <div style="display:flex;align-items:center;gap:.5rem;padding:.6rem 0 .75rem;flex-wrap:wrap">
+      <span style="font-size:.76rem;color:rgba(255,255,255,.4);flex-shrink:0">價格區間</span>
+      <input type="number" min="0" placeholder="最低價" value="${esc(S.priceMin)}"
+        oninput="S.priceMin=this.value;S.listPage=1;render()"
+        style="width:90px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;border-radius:.55rem;padding:.3rem .6rem;font-size:.78rem"
+        onkeydown="if(event.key==='Enter')render()"/>
+      <span style="color:rgba(255,255,255,.25);font-size:.82rem">—</span>
+      <input type="number" min="0" placeholder="最高價" value="${esc(S.priceMax)}"
+        oninput="S.priceMax=this.value;S.listPage=1;render()"
+        style="width:90px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;outline:none;border-radius:.55rem;padding:.3rem .6rem;font-size:.78rem"
+        onkeydown="if(event.key==='Enter')render()"/>
+      ${(S.priceMin!==''||S.priceMax!=='')?`<button onclick="S.priceMin='';S.priceMax='';S.listPage=1;render()" style="font-size:.72rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;padding:.2rem .4rem" onmouseover="this.style.color='#FFD700'" onmouseout="this.style.color='rgba(255,255,255,.35)'">✕ 清除</button>`:''}
+    </div>
+
+    ${(S.searchQuery||S.filterRank!=='all'||S.priceMin!==''||S.priceMax!=='')?`<div style="padding:.35rem 0 .55rem;font-size:.78rem;color:rgba(255,255,255,.38)">${S.searchQuery?`搜尋「<span style="color:#FFD700">${esc(S.searchQuery)}</span>」 `:''}${(S.priceMin!==''||S.priceMax!=='')?`價格 <span style="color:#FFD700">${S.priceMin||'0'} ~ ${S.priceMax||'∞'}</span> `:''}找到 <strong style="color:#fff">${items.length}</strong> 個帳號</div>`:''}
 
     ${items.length===0?`
       <div style="text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
@@ -772,6 +796,7 @@ function goAdmin(){history.pushState(null,'','#/admin');S.page='admin';window.sc
 /* List */
 function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
 function setFilter(r){S.filterRank=r;S.listPage=1;render()}
+function setPriceRange(min,max){S.priceMin=min;S.priceMax=max;S.listPage=1;render()}
 function setSort(v){S.sortBy=v;S.listPage=1;render()}
 function goListPage(p){S.listPage=p;window.scrollTo({top:0,behavior:'smooth'});render()}
 
