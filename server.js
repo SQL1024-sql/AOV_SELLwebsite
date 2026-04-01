@@ -25,7 +25,7 @@ function requireAuth(req, res, next) {
 }
 
 // Ensure acc_img directory exists
-if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR);
+if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR, { recursive: true });
 
 app.use(express.json());
 app.use(express.static(__dirname));

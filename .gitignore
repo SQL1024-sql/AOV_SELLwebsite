@@ -1,3 +1,7 @@
 node_modules/
+node_modules
 acc_img/
 accounts.json
+wrangler.toml
+wrangler.jsonc
+package-lock.json
