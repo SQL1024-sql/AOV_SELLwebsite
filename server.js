@@ -20,7 +20,7 @@ function requireAuth(req, res, next) {
     const [user, pass] = decoded.split(':');
     if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
   }
-  res.set('WWW-Authenticate', 'Basic realm="後台管理"');
+  res.set('WWW-Authenticate', 'Basic realm="Admin"');
   res.status(401).send('需要登入');
 }
 
