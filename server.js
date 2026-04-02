@@ -6,8 +6,9 @@ const fs      = require('fs');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR      = process.env.DATA_DIR || __dirname;
-const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
-const IMG_DIR       = path.join(DATA_DIR, 'acc_img');
+const ACCOUNTS_FILE    = path.join(DATA_DIR, 'accounts.json');
+const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
+const IMG_DIR          = path.join(DATA_DIR, 'acc_img');
 
 /* ── Admin Basic Auth ── */
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
@@ -180,6 +181,69 @@ app.delete('/api/accounts/:id', requireAuth, (req, res) => {
 
 /* ── Serve acc_img directory ── */
 app.use('/acc_img', express.static(IMG_DIR));
+
+/* ══════════════════════════════════════════════════════════
+   SUBMISSIONS API  (收帳號 / 製圖訂單)
+══════════════════════════════════════════════════════════ */
+
+function readSubmissions() {
+  try { return JSON.parse(fs.readFileSync(SUBMISSIONS_FILE, 'utf8')); }
+  catch(e) { return []; }
+}
+function writeSubmissions(data) {
+  fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+/* POST /api/submissions  — public, customer submits */
+app.post('/api/submissions', (req, res) => {
+  const { type, gameAccount, gamePassword, contact, note } = req.body;
+  if (!type || !contact) return res.status(400).json({ error: '缺少必填欄位' });
+  if (type === 'design' && (!gameAccount || !gamePassword)) {
+    return res.status(400).json({ error: '製圖服務需填寫遊戲帳號與密碼' });
+  }
+  const subs = readSubmissions();
+  const newId = subs.length ? Math.max(...subs.map(s => s.id)) + 1 : 1;
+  const entry = {
+    id:          newId,
+    type,
+    gameAccount: gameAccount || '',
+    gamePassword: gamePassword || '',
+    contact,
+    note:        note || '',
+    createdAt:   new Date().toISOString(),
+    done:        false,
+  };
+  subs.push(entry);
+  writeSubmissions(subs);
+  res.status(201).json({ ok: true, id: newId });
+});
+
+/* GET /api/submissions  — auth required */
+app.get('/api/submissions', requireAuth, (req, res) => {
+  res.json(readSubmissions());
+});
+
+/* PATCH /api/submissions/:id  — toggle done, auth required */
+app.patch('/api/submissions/:id', requireAuth, (req, res) => {
+  const subs = readSubmissions();
+  const id  = parseInt(req.params.id, 10);
+  const idx = subs.findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ error: '訂單不存在' });
+  subs[idx].done = !subs[idx].done;
+  writeSubmissions(subs);
+  res.json(subs[idx]);
+});
+
+/* DELETE /api/submissions/:id  — auth required */
+app.delete('/api/submissions/:id', requireAuth, (req, res) => {
+  const subs = readSubmissions();
+  const id  = parseInt(req.params.id, 10);
+  const idx = subs.findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ error: '訂單不存在' });
+  subs.splice(idx, 1);
+  writeSubmissions(subs);
+  res.json({ ok: true });
+});
 
 app.listen(PORT, () => {
   console.log(`伺服器啟動於 http://localhost:${PORT}`);

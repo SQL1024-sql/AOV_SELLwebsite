@@ -76,36 +76,53 @@
 <!-- MAIN -->
 <main style="max-width:1200px;margin:0 auto;padding:1.5rem 1rem 4rem">
 
-  <!-- Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
-    <div>
-      <h1 style="font-size:1.35rem;font-weight:900">貼文管理</h1>
-      <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">共 <span id="totalCount" style="color:#FFD700;font-weight:700">0</span> 篇貼文</p>
+  <!-- Tabs -->
+  <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:1.25rem">
+    <button id="tabListings" onclick="switchTab('listings')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:#FFD700;border-bottom:2px solid #FFD700;transition:all .18s">📋 貼文管理</button>
+    <button id="tabOrders" onclick="switchTab('orders')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">🎨 製圖訂單 <span id="orderBadge" style="display:none;background:#f87171;color:#fff;border-radius:999px;padding:.05rem .45rem;font-size:.68rem;margin-left:.3rem">0</span></button>
+  </div>
+
+  <!-- ═══ LISTINGS TAB ═══ -->
+  <div id="sectionListings">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+      <div>
+        <h1 style="font-size:1.35rem;font-weight:900">貼文管理</h1>
+        <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">共 <span id="totalCount" style="color:#FFD700;font-weight:700">0</span> 篇貼文</p>
+      </div>
+      <button class="btn btn-gold" onclick="openAddModal()" style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;padding:.55rem 1.2rem">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        新增貼文
+      </button>
     </div>
-    <button class="btn btn-gold" onclick="openAddModal()" style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;padding:.55rem 1.2rem">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      新增貼文
-    </button>
+    <div style="position:relative;margin-bottom:1rem">
+      <svg style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);pointer-events:none;color:rgba(255,255,255,.32)" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input id="searchInput" type="text" class="inp" placeholder="搜尋標題或 ID…" style="padding-left:2.4rem" oninput="handleSearch(this.value)"/>
+    </div>
+    <div id="postsList"><!-- filled by JS --></div>
+    <div id="pagination" style="display:none;justify-content:center;align-items:center;gap:.4rem;margin-top:1.25rem;flex-wrap:wrap"></div>
+    <div id="emptyState" style="display:none;text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
+      <div style="font-size:3rem;margin-bottom:1rem">📭</div>
+      <div style="font-size:1rem;font-weight:600">目前沒有任何貼文</div>
+      <div style="font-size:.82rem;margin-top:.5rem">點擊「新增貼文」開始新增</div>
+    </div>
   </div>
 
-  <!-- Search bar -->
-  <div style="position:relative;margin-bottom:1rem">
-    <svg style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);pointer-events:none;color:rgba(255,255,255,.32)" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-    <input id="searchInput" type="text" class="inp" placeholder="搜尋標題或 ID…" style="padding-left:2.4rem" oninput="handleSearch(this.value)"/>
+  <!-- ═══ ORDERS TAB ═══ -->
+  <div id="sectionOrders" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+      <div>
+        <h1 style="font-size:1.35rem;font-weight:900">製圖訂單</h1>
+        <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">共 <span id="orderCount" style="color:#B47FFF;font-weight:700">0</span> 筆，待處理 <span id="orderPending" style="color:#f87171;font-weight:700">0</span> 筆</p>
+      </div>
+      <button class="btn btn-outline" onclick="loadOrders()" style="font-size:.78rem">↻ 重新整理</button>
+    </div>
+    <div id="ordersList"><!-- filled by JS --></div>
+    <div id="ordersEmpty" style="display:none;text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
+      <div style="font-size:3rem;margin-bottom:1rem">📭</div>
+      <div style="font-size:1rem;font-weight:600">目前沒有製圖訂單</div>
+    </div>
   </div>
 
-  <!-- Posts List -->
-  <div id="postsList"><!-- filled by JS --></div>
-
-  <!-- Pagination -->
-  <div id="pagination" style="display:none;justify-content:center;align-items:center;gap:.4rem;margin-top:1.25rem;flex-wrap:wrap"></div>
-
-  <!-- Empty state -->
-  <div id="emptyState" style="display:none;text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
-    <div style="font-size:3rem;margin-bottom:1rem">📭</div>
-    <div style="font-size:1rem;font-weight:600">目前沒有任何貼文</div>
-    <div style="font-size:.82rem;margin-top:.5rem">點擊「新增貼文」開始新增</div>
-  </div>
 </main>
 
 <!-- ══ ADD / EDIT MODAL ══ -->
@@ -502,7 +519,134 @@ function showToast(msg, type = 'success') {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
+/* ══════════════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════════════ */
+let currentTab = 'listings';
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('sectionListings').style.display = tab === 'listings' ? 'block' : 'none';
+  document.getElementById('sectionOrders').style.display   = tab === 'orders'   ? 'block' : 'none';
+  document.getElementById('tabListings').style.color      = tab === 'listings' ? '#FFD700'              : 'rgba(255,255,255,.4)';
+  document.getElementById('tabListings').style.borderBottomColor = tab === 'listings' ? '#FFD700' : 'transparent';
+  document.getElementById('tabOrders').style.color        = tab === 'orders'   ? '#B47FFF'              : 'rgba(255,255,255,.4)';
+  document.getElementById('tabOrders').style.borderBottomColor   = tab === 'orders'   ? '#B47FFF' : 'transparent';
+  if (tab === 'orders') loadOrders();
+}
+
+/* ══════════════════════════════════════════════════════
+   ORDERS
+══════════════════════════════════════════════════════ */
+let orders = [];
+
+async function loadOrders() {
+  try {
+    const res = await fetch('/api/submissions');
+    orders = await res.json();
+  } catch(e) {
+    orders = [];
+  }
+  renderOrders();
+}
+
+function renderOrders() {
+  const list    = document.getElementById('ordersList');
+  const empty   = document.getElementById('ordersEmpty');
+  const pending = orders.filter(o => !o.done).length;
+
+  document.getElementById('orderCount').textContent   = orders.length;
+  document.getElementById('orderPending').textContent = pending;
+  const badge = document.getElementById('orderBadge');
+  if (pending > 0) { badge.style.display = 'inline'; badge.textContent = pending; }
+  else { badge.style.display = 'none'; }
+
+  if (!orders.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Sort: pending first, then by date desc
+  const sorted = [...orders].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  list.innerHTML = sorted.map(o => {
+    const date = new Date(o.createdAt).toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    return `
+    <div style="background:#0D0D26;border:1px solid ${o.done ? 'rgba(255,255,255,.06)' : 'rgba(180,127,255,.2)'};border-radius:.9rem;padding:1rem 1.1rem;margin-bottom:.75rem;opacity:${o.done ? '.55' : '1'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <div style="display:flex;align-items:center;gap:.55rem">
+          <span style="font-size:.72rem;color:rgba(255,255,255,.3)">#${o.id}</span>
+          <span style="font-size:.72rem;font-weight:700;padding:.15rem .55rem;border-radius:.35rem;background:${o.done ? 'rgba(255,255,255,.08)' : 'rgba(180,127,255,.15)'};color:${o.done ? 'rgba(255,255,255,.3)' : '#B47FFF'}">${o.done ? '✅ 已完成' : '⏳ 待處理'}</span>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.3)">${date}</span>
+        </div>
+        <div style="display:flex;gap:.4rem">
+          <button class="btn ${o.done ? 'btn-outline' : 'btn-green'}" style="font-size:.72rem;padding:.3rem .7rem" onclick="toggleOrder(${o.id})">${o.done ? '↩ 標為未完成' : '✓ 標為完成'}</button>
+          <button class="btn btn-red" style="font-size:.72rem;padding:.3rem .65rem" onclick="deleteOrder(${o.id})">🗑</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem .9rem">
+        <div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.2rem">遊戲帳號</div>
+          <div style="font-size:.85rem;font-weight:700;color:#fff;word-break:break-all">${escH(o.gameAccount)}</div>
+        </div>
+        <div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.2rem">遊戲密碼</div>
+          <div style="display:flex;align-items:center;gap:.4rem">
+            <span id="pw_${o.id}" style="font-size:.85rem;font-weight:700;color:#FFD700;letter-spacing:.12em;word-break:break-all">••••••••</span>
+            <button onclick="togglePw(${o.id},'${escH(o.gamePassword)}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:.1rem .3rem" title="顯示/隱藏密碼">👁</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.2rem">聯繫方式</div>
+          <div style="font-size:.85rem;font-weight:700;color:#63B3ED;word-break:break-all">${escH(o.contact)}</div>
+        </div>
+        ${o.note ? `<div style="grid-column:1/-1">
+          <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.2rem">備註</div>
+          <div style="font-size:.82rem;color:rgba(255,255,255,.6)">${escH(o.note)}</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escH(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+const pwVisible = {};
+function togglePw(id, plain) {
+  pwVisible[id] = !pwVisible[id];
+  const el = document.getElementById('pw_' + id);
+  if (el) el.textContent = pwVisible[id] ? plain : '••••••••';
+}
+
+async function toggleOrder(id) {
+  try {
+    await fetch(`/api/submissions/${id}`, { method: 'PATCH' });
+    await loadOrders();
+  } catch(e) { showToast('❌ 操作失敗', 'error'); }
+}
+
+async function deleteOrder(id) {
+  if (!confirm('確定要刪除這筆訂單？')) return;
+  try {
+    await fetch(`/api/submissions/${id}`, { method: 'DELETE' });
+    await loadOrders();
+    showToast('🗑️ 訂單已刪除', 'info');
+  } catch(e) { showToast('❌ 刪除失敗', 'error'); }
+}
+
 init();
+// load order badge on init
+fetch('/api/submissions').then(r=>r.json()).then(data=>{
+  const pending = data.filter(o=>!o.done).length;
+  const badge = document.getElementById('orderBadge');
+  if(pending>0){badge.style.display='inline';badge.textContent=pending;}
+}).catch(()=>{});
 </script>
 </body>
 </html>
