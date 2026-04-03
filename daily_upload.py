@@ -4,10 +4,14 @@ import requests
 from requests.auth import HTTPBasicAuth
 from PIL import Image
 
-# ── 設定這裡 ──────────────────────────────────────────
-BASE_URL   = 'https://aovsellwebsite-production.up.railway.app'
-ADMIN_USER = 'crabstore'       # 改成你在 Railway 設的 ADMIN_USER
-ADMIN_PASS = 'NNggininder@'    # 改成你在 Railway 設的 ADMIN_PASS
+# ── 設定從環境變數讀取（不要把密碼寫在程式碼裡）────────
+BASE_URL   = os.environ.get('SITE_URL',    'https://aovsellwebsite-production.up.railway.app')
+ADMIN_USER = os.environ.get('ADMIN_USER')
+ADMIN_PASS = os.environ.get('ADMIN_PASS')
+if not ADMIN_USER or not ADMIN_PASS:
+    raise SystemExit('❌ 請先設定環境變數 ADMIN_USER 和 ADMIN_PASS，例如：\n'
+                     '   export ADMIN_USER=你的帳號\n'
+                     '   export ADMIN_PASS=你的密碼')
 # ─────────────────────────────────────────────────────
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

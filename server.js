@@ -11,17 +11,60 @@ const ACCOUNTS_FILE    = path.join(DATA_DIR, 'accounts.json');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 const IMG_DIR          = path.join(DATA_DIR, 'acc_img');
 
-/* ── Admin Basic Auth ── */
+/* ── Security Headers ── */
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('X-XSS-Protection', '1; mode=block');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
+/* ── Admin Basic Auth with brute-force protection ── */
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'changeme';
 
+// Track failed login attempts per IP
+const authFailures = new Map(); // ip -> { count, resetAt }
+const AUTH_MAX_FAILURES = 10;
+const AUTH_LOCKOUT_MS   = 15 * 60 * 1000; // 15 minutes
+
 function requireAuth(req, res, next) {
+  const ip  = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+  const now = Date.now();
+
+  // Check if IP is locked out
+  const record = authFailures.get(ip);
+  if (record) {
+    if (record.count >= AUTH_MAX_FAILURES && record.resetAt > now) {
+      const waitMin = Math.ceil((record.resetAt - now) / 60000);
+      return res.status(429).send(`登入嘗試次數過多，請 ${waitMin} 分鐘後再試`);
+    }
+    if (record.resetAt <= now) authFailures.delete(ip);
+  }
+
   const auth = req.headers['authorization'];
   if (auth && auth.startsWith('Basic ')) {
     const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf8');
-    const [user, pass] = decoded.split(':');
-    if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
+    const colonIdx = decoded.indexOf(':');
+    if (colonIdx !== -1) {
+      const user = decoded.slice(0, colonIdx);
+      const pass = decoded.slice(colonIdx + 1);
+      if (user === ADMIN_USER && pass === ADMIN_PASS) {
+        authFailures.delete(ip); // reset on success
+        return next();
+      }
+    }
   }
+
+  // Record failure
+  const cur = authFailures.get(ip) || { count: 0, resetAt: now + AUTH_LOCKOUT_MS };
+  if (cur.count === 0) cur.resetAt = now + AUTH_LOCKOUT_MS;
+  cur.count++;
+  authFailures.set(ip, cur);
+
   res.set('WWW-Authenticate', 'Basic realm="Admin"');
   res.status(401).send('需要登入');
 }
@@ -30,7 +73,7 @@ function requireAuth(req, res, next) {
 if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR, { recursive: true });
 
 app.use(compression());
-app.use(express.json());
+app.use(express.json({ limit: '50kb' })); // prevent oversized JSON payloads
 
 /* Block direct static access to admin.html and daily.html (any path) */
 app.use((req, res, next) => {
@@ -59,6 +102,28 @@ function nextImgId(accounts) {
     if (!isNaN(n) && n > max) max = n;
   }
   return String(max + 1).padStart(8, '0');
+}
+
+/* ── MIME magic-byte validation (prevents extension spoofing) ── */
+function isAllowedImageMime(filePath) {
+  try {
+    const buf = Buffer.alloc(12);
+    const fd  = fs.openSync(filePath, 'r');
+    const bytesRead = fs.readSync(fd, buf, 0, 12, 0);
+    fs.closeSync(fd);
+    if (bytesRead < 3) return false;
+    // JPEG: FF D8 FF
+    if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true;
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true;
+    // GIF: 47 49 46 38 (GIF8)
+    if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return true;
+    // WebP: 52 49 46 46 ?? ?? ?? ?? 57 45 42 50
+    if (bytesRead >= 12 &&
+        buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+        buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return true;
+    return false;
+  } catch (e) { return false; }
 }
 
 /* ── Multer: save to temp, rename after we know the ID ── */
@@ -98,6 +163,12 @@ app.post('/api/accounts', requireAuth, upload.single('image'), (req, res) => {
     return res.status(400).json({ error: '價格為必填' });
   }
 
+  // Validate actual file content (magic bytes), not just extension
+  if (req.file && !isAllowedImageMime(req.file.path)) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: '不允許的圖片格式' });
+  }
+
   const newId = accounts.length ? Math.max(...accounts.map(a => a.id)) + 1 : 1;
   let imgNAME = '';
 
@@ -135,6 +206,12 @@ app.put('/api/accounts/:id', requireAuth, upload.single('image'), (req, res) => 
   if (!price) {
     if (req.file) fs.unlinkSync(req.file.path);
     return res.status(400).json({ error: '價格為必填' });
+  }
+
+  // Validate actual file content (magic bytes), not just extension
+  if (req.file && !isAllowedImageMime(req.file.path)) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: '不允許的圖片格式' });
   }
 
   let imgNAME = accounts[idx].imgNAME;
@@ -203,18 +280,28 @@ function writeSubmissions(data) {
 app.post('/api/submissions', (req, res) => {
   const { type, gameAccount, gamePassword, contact, note } = req.body;
   if (!type || !contact) return res.status(400).json({ error: '缺少必填欄位' });
+
+  // Input length limits to prevent oversized payloads
+  const LIMITS = { type: 20, gameAccount: 100, gamePassword: 100, contact: 200, note: 1000 };
+  if (String(type).length     > LIMITS.type)        return res.status(400).json({ error: '欄位超過長度限制' });
+  if (String(contact).length  > LIMITS.contact)     return res.status(400).json({ error: '欄位超過長度限制' });
+  if (note   && String(note).length  > LIMITS.note) return res.status(400).json({ error: '備註超過 1000 字' });
+
   if (type === 'design' && (!gameAccount || !gamePassword)) {
     return res.status(400).json({ error: '製圖服務需填寫遊戲帳號與密碼' });
   }
+  if (gameAccount && String(gameAccount).length > LIMITS.gameAccount) return res.status(400).json({ error: '欄位超過長度限制' });
+  if (gamePassword && String(gamePassword).length > LIMITS.gamePassword) return res.status(400).json({ error: '欄位超過長度限制' });
+
   const subs = readSubmissions();
   const newId = subs.length ? Math.max(...subs.map(s => s.id)) + 1 : 1;
   const entry = {
     id:          newId,
-    type,
-    gameAccount: gameAccount || '',
-    gamePassword: gamePassword || '',
-    contact,
-    note:        note || '',
+    type:        String(type).slice(0, LIMITS.type),
+    gameAccount: String(gameAccount || '').slice(0, LIMITS.gameAccount),
+    gamePassword: String(gamePassword || '').slice(0, LIMITS.gamePassword),
+    contact:     String(contact).slice(0, LIMITS.contact),
+    note:        String(note || '').slice(0, LIMITS.note),
     createdAt:   new Date().toISOString(),
     done:        false,
   };
