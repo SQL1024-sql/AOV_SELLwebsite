@@ -86,7 +86,7 @@
 
     .img-thumb{width:70px;height:50px;object-fit:cover;border-radius:.45rem;cursor:pointer;flex-shrink:0;border:2px solid rgba(255,255,255,.1);transition:border-color .18s,transform .18s}
     .img-thumb.active,.img-thumb:hover{border-color:#FFD700;transform:scale(1.07)}
-    .detail-main-img{width:100%;display:block;border-radius:.85rem;cursor:zoom-in;aspect-ratio:4/3;object-fit:cover}
+    .detail-main-img{width:100%;display:block;border-radius:.85rem;cursor:zoom-in;aspect-ratio:16/9;object-fit:cover;max-height:260px}
 
     .stat-row{display:flex;align-items:center;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.875rem}
     .stat-row:last-child{border-bottom:none}
@@ -949,9 +949,9 @@ function attachEvents(){
 }
 
 /* Navigation */
-function goHome(){history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
-function goDetail(id){history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
-function goAdmin(){history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
+function goHome(){document.body.style.overflow='';history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
+function goDetail(id){document.body.style.overflow='';history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
+function goAdmin(){document.body.style.overflow='';history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
 
 /* List */
 function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
@@ -1085,10 +1085,13 @@ function deleteAccount(id){
    ROUTER + INIT
    ===================================================== */
 window.addEventListener('popstate',()=>{
+  document.body.style.overflow='';
+  S.lightboxOpen=false;S.contactOpen=false;
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;S.activeImg=0;}}
   else if(h==='#/admin'){S.page='admin';}
   else{S.page='list';S.accountId=null;}
+  window.scrollTo({top:0,behavior:'smooth'});
   render();
 });
 
