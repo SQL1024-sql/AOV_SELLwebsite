@@ -836,6 +836,18 @@ function renderDesignModal(){
         <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">🔒 資料加密傳輸，製圖完成後立即刪除</div>
       </div>
       <div class="form-group">
+        <label class="form-label">綁定方式 <span style="color:#f87171">*</span></label>
+        <select id="dsBindType" class="inp" style="cursor:pointer">
+          <option value="">請選擇綁定方式</option>
+          <option value="facebook">Facebook</option>
+          <option value="google">Google</option>
+          <option value="phone">手機號碼</option>
+          <option value="email">電子信箱</option>
+          <option value="none">未綁定</option>
+        </select>
+        <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">❓ 不確定如何查看？請參考下方圖片說明</div>
+      </div>
+      <div class="form-group">
         <label class="form-label">聯繫方式 <span style="color:#f87171">*</span></label>
         <input id="dsContact" type="text" class="inp" placeholder="FB / IG / Line ID…"/>
       </div>
@@ -847,6 +859,12 @@ function renderDesignModal(){
       <button onclick="submitDesign()" ${S.designSubmitting?'disabled':''} style="width:100%;padding:.65rem;border-radius:.7rem;font-weight:900;font-size:.92rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;opacity:${S.designSubmitting?'.6':'1'}">
         ${S.designSubmitting?'送出中…':'送出申請'}
       </button>
+
+      <!-- 綁定方式說明圖 -->
+      <div style="margin-top:1.2rem;border-top:1px solid rgba(180,127,255,.15);padding-top:1rem">
+        <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-bottom:.55rem;text-align:center">📖 如何查看帳號綁定方式</div>
+        <img src="/binding-guide.jpg" alt="綁定方式查看說明" style="width:100%;border-radius:.65rem;display:block" onerror="this.style.display='none'"/>
+      </div>
     </div>
   </div>`;
 }
@@ -969,10 +987,11 @@ function togglePwVis(){
 async function submitDesign(){
   const g=id=>document.getElementById(id)?.value?.trim()||'';
   const gameAccount=g('dsGameAcc'),gamePassword=g('dsGamePw'),contact=g('dsContact'),note=g('dsNote');
-  if(!gameAccount||!gamePassword||!contact){S.designError='請填寫所有必填欄位';render();return}
+  const bindType=document.getElementById('dsBindType')?.value||'';
+  if(!gameAccount||!gamePassword||!bindType||!contact){S.designError='請填寫所有必填欄位';render();return}
   S.designSubmitting=true;S.designError='';render();
   try{
-    const res=await fetch('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'design',gameAccount,gamePassword,contact,note})});
+    const res=await fetch('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'design',gameAccount,gamePassword,bindType,contact,note})});
     if(res.ok){S.designStep='done';}
     else{const d=await res.json().catch(()=>({}));S.designError=d.error||'送出失敗，請稍後再試';}
   }catch(e){S.designError='連線失敗，請稍後再試';}
