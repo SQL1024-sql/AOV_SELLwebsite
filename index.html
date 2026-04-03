@@ -121,6 +121,10 @@
     footer .copyright{font-size:.78rem;color:rgba(255,255,255,.3)}
 
     /* ── Responsive ── */
+    #detailGrid{grid-template-columns:1fr}
+    @media(min-width:768px){
+      #detailGrid{grid-template-columns:55% 1fr}
+    }
     @media(max-width:640px){
       .pcard-grid{grid-template-columns:repeat(2,1fr)!important;gap:.5rem!important}
       #detailGrid{grid-template-columns:1fr!important}
@@ -522,7 +526,7 @@ function renderDetailPage(){
       <span style="font-size:.78rem;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(acc.title)}</span>
     </div>
 
-    <div id="detailGrid" style="display:grid;grid-template-columns:1fr;gap:1.25rem">
+    <div id="detailGrid" style="display:grid;gap:1.25rem">
 
       <!-- Images -->
       <div>
@@ -566,7 +570,7 @@ function renderDetailPage(){
       </div>
     `;})()}
   </div>
-  <script>(function(){const g=document.getElementById('detailGrid');if(g&&window.innerWidth>=768)g.style.gridTemplateColumns='55% 1fr';})()<\/script>`;
+  `;
 }
 
 /* ── ADMIN PAGE ── */
