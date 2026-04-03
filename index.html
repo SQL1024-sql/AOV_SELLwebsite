@@ -302,6 +302,7 @@ const S = {
   designStep: 'form',   // 'form' | 'done'
   designError: '',
   designSubmitting: false,
+  designVerifyCode: '',
   // admin
   adminTab:'listings',  // 'listings'
   formOpen:false,       // add / edit modal
@@ -813,12 +814,26 @@ function renderBuyModal(){
 
 function renderDesignModal(){
   if(S.designStep==='done') return`
-  <div class="modal-backdrop" onclick="closeServiceModal()">
-    <div class="modal-box glass" style="width:100%;max-width:400px;padding:2rem;text-align:center;border-color:rgba(180,127,255,.3)" onclick="event.stopPropagation()">
-      <div style="font-size:3rem;margin-bottom:.75rem">✅</div>
-      <h2 style="font-weight:900;font-size:1.1rem;margin-bottom:.5rem;color:#B47FFF">已收到您的需求！</h2>
-      <p style="font-size:.83rem;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:1.2rem">我們會盡快與您聯繫，請留意您填寫的聯繫方式。</p>
-      <button onclick="closeServiceModal()" style="padding:.6rem 2rem;border-radius:.7rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;font-weight:700;font-size:.9rem">關閉</button>
+  <div class="modal-backdrop">
+    <div class="modal-box glass" style="width:100%;max-width:420px;padding:1.75rem;text-align:center;border-color:rgba(180,127,255,.3)" onclick="event.stopPropagation()">
+      <div style="font-size:2.8rem;margin-bottom:.5rem">✅</div>
+      <h2 style="font-weight:900;font-size:1.1rem;margin-bottom:.4rem;color:#B47FFF">已收到您的需求！</h2>
+      <p style="font-size:.8rem;color:rgba(255,255,255,.45);line-height:1.55;margin-bottom:1.1rem">我們會盡快與您聯繫，請留意您填寫的聯繫方式。</p>
+
+      <!-- 驗證碼 -->
+      <div style="background:rgba(180,127,255,.1);border:1.5px solid rgba(180,127,255,.35);border-radius:.85rem;padding:1rem 1.2rem;margin-bottom:.85rem">
+        <div style="font-size:.7rem;color:rgba(255,255,255,.45);margin-bottom:.45rem;letter-spacing:.03em">📋 您的訂單驗證碼</div>
+        <div style="font-size:1.75rem;font-weight:900;letter-spacing:.18em;color:#B47FFF;font-family:monospace">${esc(S.designVerifyCode)}</div>
+        <div style="font-size:.7rem;color:rgba(255,255,255,.32);margin-top:.45rem">聯繫時請告知此驗證碼，以確認是本人</div>
+      </div>
+
+      <!-- 截圖提醒 -->
+      <div style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.22);border-radius:.75rem;padding:.7rem .9rem;margin-bottom:1.1rem;font-size:.78rem;color:#FFD700;text-align:left;line-height:1.55">
+        📸 <strong>請截圖保存此頁面</strong><br/>
+        <span style="color:rgba(255,255,255,.45);font-size:.73rem">當我們聯繫您時，會請您提供截圖或驗證碼以確認您是訂單本人。</span>
+      </div>
+
+      <button onclick="closeServiceModal()" style="padding:.6rem 2rem;border-radius:.7rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;font-weight:700;font-size:.9rem;width:100%">我已截圖，關閉</button>
     </div>
   </div>`;
 
@@ -991,7 +1006,7 @@ function copyContact(text){
 
 /* Service Modals */
 function openServiceModal(type){S.serviceModal=type;S.designStep='form';S.designError='';S.designSubmitting=false;document.body.style.overflow='hidden';render()}
-function closeServiceModal(){S.serviceModal=null;S.designStep='form';document.body.style.overflow='';render()}
+function closeServiceModal(){S.serviceModal=null;S.designStep='form';S.designVerifyCode='';document.body.style.overflow='';render()}
 function togglePwVis(){
   const inp=document.getElementById('dsGamePw');
   const btn=document.getElementById('pwToggleBtn');
@@ -1007,7 +1022,7 @@ async function submitDesign(){
   S.designSubmitting=true;S.designError='';render();
   try{
     const res=await fetch('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'design',gameAccount,gamePassword,bindType,contact,note})});
-    if(res.ok){S.designStep='done';}
+    if(res.ok){const d=await res.json().catch(()=>({}));S.designVerifyCode=d.verifyCode||'';S.designStep='done';}
     else{const d=await res.json().catch(()=>({}));S.designError=d.error||'送出失敗，請稍後再試';}
   }catch(e){S.designError='連線失敗，請稍後再試';}
   S.designSubmitting=false;render();
