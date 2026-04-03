@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:aovsellwebsite-production.up.railway.app)"
+      "WebFetch(domain:aovsellwebsite-production.up.railway.app)",
+      "Bash(npm install:*)"
     ]
   }
 }

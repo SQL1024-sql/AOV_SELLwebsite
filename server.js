@@ -1,7 +1,8 @@
-const express = require('express');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const express     = require('express');
+const compression = require('compression');
+const multer      = require('multer');
+const path        = require('path');
+const fs          = require('fs');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +29,7 @@ function requireAuth(req, res, next) {
 // Ensure acc_img directory exists
 if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR, { recursive: true });
 
+app.use(compression());
 app.use(express.json());
 
 /* Block direct static access to admin.html and daily.html (any path) */
@@ -179,8 +181,11 @@ app.delete('/api/accounts/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-/* ── Serve acc_img directory ── */
-app.use('/acc_img', express.static(IMG_DIR));
+/* ── Serve acc_img directory (long cache: images are content-addressed by ID) ── */
+app.use('/acc_img', express.static(IMG_DIR, {
+  maxAge: '1y',
+  immutable: true,
+}));
 
 /* ══════════════════════════════════════════════════════════
    SUBMISSIONS API  (收帳號 / 製圖訂單)

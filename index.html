@@ -17,6 +17,7 @@
   <meta name="twitter:image" content="https://aovsellwebsite-production.up.railway.app/preview.jpg" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -30,9 +31,10 @@
     /* ── Product card ── */
     .pcard{background:#0D0D26;border-radius:1rem;overflow:hidden;cursor:pointer;transition:transform .28s,box-shadow .28s;border:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;position:relative}
     .pcard:hover{transform:translateY(-5px);box-shadow:0 16px 45px rgba(255,215,0,.15);border-color:rgba(255,215,0,.3)}
-    .pcard .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;transition:transform .45s}
+    .pcard .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;transition:transform .45s,opacity .35s;opacity:0}
+    .pcard .thumb.img-ready{opacity:1}
     .pcard:hover .thumb{transform:scale(1.05)}
-    .pcard .thumb-wrap{overflow:hidden;position:relative;flex-shrink:0}
+    .pcard .thumb-wrap{overflow:hidden;position:relative;flex-shrink:0;background:#12122a}
 
     /* ── Shimmer ── */
     .shimmer{position:relative}
@@ -479,7 +481,7 @@ function renderListPage(){
       </div>
     `:`
       <div class="pcard-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:.9rem;padding-top:.9rem">
-        ${pageItems.map(renderProductCard).join('')}
+        ${pageItems.map((a,i)=>renderProductCard(a,i)).join('')}
       </div>
       ${buildPagination()}
     `}
@@ -487,12 +489,12 @@ function renderListPage(){
 }
 
 /* ── PRODUCT CARD ── */
-function renderProductCard(acc){
+function renderProductCard(acc,idx=0){
   const leg=acc.rank==='傳說';
   return `
   <div class="pcard ${leg&&!acc.sold?'shimmer':''}" style="${leg&&!acc.sold?'border-color:rgba(255,215,0,.28)':''}" onclick="goDetail(${acc.id})">
     <div class="thumb-wrap">
-      <img class="thumb" src="${esc(acc.coverImage)}" alt="${esc(acc.title)}" onerror="this.src='https://placehold.co/800x600/0d0d26/ffd700?text=AOV'"/>
+      <img class="thumb" src="${esc(acc.coverImage)}" alt="${esc(acc.title)}" loading="${idx<4?'eager':'lazy'}" decoding="async" fetchpriority="${idx<2?'high':'auto'}" onload="this.classList.add('img-ready')" onerror="this.onerror=null;this.src='https://placehold.co/800x600/0d0d26/ffd700?text=AOV';this.classList.add('img-ready')"/>
       ${acc.sold?`<div style="position:absolute;inset:0;background:rgba(7,7,26,.72);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:rgba(239,68,68,.9);color:#fff;font-size:.8rem;font-weight:900;padding:.3rem 1rem;border-radius:999px">已售出</span></div>`:''}
     </div>
     <div style="padding:.65rem .75rem .8rem;flex:1;display:flex;flex-direction:column;gap:.35rem">
@@ -525,11 +527,11 @@ function renderDetailPage(){
       <!-- Images -->
       <div>
         <div class="${leg?'shimmer':''}" onclick="openLightbox()" style="border-radius:.9rem;overflow:hidden;border:2px solid ${leg?'rgba(255,215,0,.5)':'rgba(255,255,255,.1)'};margin-bottom:.5rem;cursor:zoom-in">
-          <img id="mainImg" class="detail-main-img" src="${esc(cur)}" alt="${esc(acc.title)}" onerror="this.src='https://placehold.co/1200x900/0d0d26/ffd700?text=AOV'"/>
+          <img id="mainImg" class="detail-main-img" src="${esc(cur)}" alt="${esc(acc.title)}" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null;this.src='https://placehold.co/1200x900/0d0d26/ffd700?text=AOV'"/>
         </div>
         ${imgs.length>1?`
           <div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.25rem" class="scrollbar-hide">
-            ${imgs.map((img,i)=>`<img src="${esc(img)}" class="img-thumb ${S.activeImg===i?'active':''}" onclick="setActiveImg(${i})" onerror="this.src='https://placehold.co/100x75/0d0d26/ffd700?text=${i+1}'"/>`).join('')}
+            ${imgs.map((img,i)=>`<img src="${esc(img)}" class="img-thumb ${S.activeImg===i?'active':''}" onclick="setActiveImg(${i})" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/100x75/0d0d26/ffd700?text=${i+1}'"/>`).join('')}
           </div>
         `:''}
       </div>
@@ -559,7 +561,7 @@ function renderDetailPage(){
       <div style="margin-top:2.5rem">
         <h2 style="font-size:.92rem;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:.85rem;padding-bottom:.55rem;border-bottom:1px solid rgba(255,255,255,.07)">其他在售帳號</h2>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:.75rem">
-          ${rel.map(a=>`<div onclick="goDetail(${a.id})" style="background:#0D0D26;border:1px solid rgba(255,255,255,.07);border-radius:.75rem;overflow:hidden;cursor:pointer;transition:transform .22s,box-shadow .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(255,215,0,.13)'" onmouseout="this.style.transform='';this.style.boxShadow=''"><img src="${esc(a.coverImage)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block" onerror="this.src='https://placehold.co/400x300/0d0d26/ffd700?text=AOV'"/><div style="padding:.5rem .6rem .65rem"><div style="font-size:.75rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.title)}</div><div class="tg-gold" style="font-size:.8rem;font-weight:900;margin-top:.2rem">NT$ ${fmt(a.price)}</div></div></div>`).join('')}
+          ${rel.map(a=>`<div onclick="goDetail(${a.id})" style="background:#0D0D26;border:1px solid rgba(255,255,255,.07);border-radius:.75rem;overflow:hidden;cursor:pointer;transition:transform .22s,box-shadow .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(255,215,0,.13)'" onmouseout="this.style.transform='';this.style.boxShadow=''"><img src="${esc(a.coverImage)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#12122a" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/400x300/0d0d26/ffd700?text=AOV'"/><div style="padding:.5rem .6rem .65rem"><div style="font-size:.75rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.title)}</div><div class="tg-gold" style="font-size:.8rem;font-weight:900;margin-top:.2rem">NT$ ${fmt(a.price)}</div></div></div>`).join('')}
         </div>
       </div>
     `;})()}
@@ -616,7 +618,7 @@ function renderAdminPage(){
         <div style="display:flex;flex-direction:column;gap:0">
           ${mine.map((acc,idx)=>`
             <div class="admin-card" style="border-radius:0;border-left:none;border-right:none;border-top:${idx===0?'none':'1px solid rgba(255,255,255,.07)'};border-bottom:none">
-              <img class="admin-thumb" src="${esc(acc.coverImage)}" onerror="this.src='https://placehold.co/90x68/0d0d26/ffd700?text=AOV'"/>
+              <img class="admin-thumb" src="${esc(acc.coverImage)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/90x68/0d0d26/ffd700?text=AOV'"/>
               <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem">
                   <span class="${rankClass(acc.rank)}" style="font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:999px;flex-shrink:0">${esc(acc.rank)}</span>
@@ -872,7 +874,7 @@ function renderDesignModal(){
       <!-- 綁定方式說明圖 -->
       <div style="margin-top:1.2rem;border-top:1px solid rgba(180,127,255,.15);padding-top:1rem">
         <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-bottom:.55rem;text-align:center">📖 如何查看帳號綁定方式</div>
-        <img src="/binding-guide.jpg" alt="綁定方式查看說明" style="width:100%;border-radius:.65rem;display:block" onerror="this.style.display='none'"/>
+        <img src="/binding-guide.jpg" alt="綁定方式查看說明" style="width:100%;border-radius:.65rem;display:block" loading="lazy" decoding="async" onerror="this.onerror=null;this.style.display='none'"/>
       </div>
     </div>
   </div>`;
@@ -917,7 +919,7 @@ function renderLightbox(){
   <div class="modal-backdrop" onclick="closeLightbox()">
     <div class="modal-box" style="position:relative;width:100%;max-width:1000px;display:flex;flex-direction:column;align-items:center" onclick="event.stopPropagation()">
       <button onclick="closeLightbox()" style="position:absolute;top:-2.5rem;right:0;font-size:2rem;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">&times;</button>
-      <img src="${esc(cur)}" style="max-height:88vh;max-width:100%;border-radius:.85rem;object-fit:contain;display:block" onerror="this.src='https://placehold.co/1000x750/0d0d26/ffd700?text=AOV'"/>
+      <img src="${esc(cur)}" style="max-height:88vh;max-width:100%;border-radius:.85rem;object-fit:contain;display:block" loading="eager" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/1000x750/0d0d26/ffd700?text=AOV'"/>
       ${imgs.length>1?`<div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem">
         <button onclick="navImg(-1)" style="padding:.32rem 1rem;border-radius:.5rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:${hp?'#fff':'rgba(255,255,255,.2)'};cursor:${hp?'pointer':'default'};font-size:.82rem" ${!hp?'disabled':''}>← 上一張</button>
         <span style="font-size:.82rem;color:rgba(255,255,255,.35)">${S.activeImg+1} / ${imgs.length}</span>
