@@ -276,13 +276,6 @@ function writeSubmissions(data) {
   fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
-/* Generate a human-readable verify code, e.g. AOV-A3K7MX */
-function generateVerifyCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // exclude 0/O, 1/I to avoid confusion
-  let suffix = '';
-  for (let i = 0; i < 6; i++) suffix += chars[Math.floor(Math.random() * chars.length)];
-  return 'AOV-' + suffix;
-}
 
 /* POST /api/submissions  — public, customer submits */
 app.post('/api/submissions', (req, res) => {
@@ -303,10 +296,8 @@ app.post('/api/submissions', (req, res) => {
 
   const subs = readSubmissions();
   const newId = subs.length ? Math.max(...subs.map(s => s.id)) + 1 : 1;
-  const verifyCode = generateVerifyCode();
   const entry = {
     id:          newId,
-    verifyCode,
     type:        String(type).slice(0, LIMITS.type),
     gameAccount: String(gameAccount || '').slice(0, LIMITS.gameAccount),
     gamePassword: String(gamePassword || '').slice(0, LIMITS.gamePassword),
@@ -317,7 +308,7 @@ app.post('/api/submissions', (req, res) => {
   };
   subs.push(entry);
   writeSubmissions(subs);
-  res.status(201).json({ ok: true, id: newId, verifyCode });
+  res.status(201).json({ ok: true, id: newId });
 });
 
 /* GET /api/submissions  — auth required */
