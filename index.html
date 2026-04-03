@@ -556,7 +556,7 @@ function renderDetailPage(){
         </div>
 
 
-        ${!acc.sold?`<button onclick="openContactModal(${acc.id})" class="pulse-glow" style="width:100%;padding:.9rem;border-radius:.85rem;font-weight:900;font-size:1rem;background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A;border:none;cursor:pointer" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">💬 立即詢問購買</button>`:`<div style="width:100%;padding:.9rem;border-radius:.85rem;text-align:center;font-weight:900;font-size:1rem;background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.3);color:#f87171">此帳號已售出</div>`}
+        ${!acc.sold?`<button onclick="openContactModal(${acc.id})" class="pulse-glow" style="width:100%;padding:.9rem;border-radius:.85rem;font-weight:900;font-size:1rem;background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A;border:none;cursor:pointer" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">💬 立即聯繫購買</button>`:`<div style="width:100%;padding:.9rem;border-radius:.85rem;text-align:center;font-weight:900;font-size:1rem;background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.3);color:#f87171">此帳號已售出</div>`}
       </div>
     </div>
 
@@ -760,7 +760,7 @@ function renderContactModal(){
   <div class="modal-backdrop" onclick="closeContact()">
     <div class="modal-box glass" style="width:100%;max-width:340px;padding:1.4rem;border-color:rgba(255,215,0,.28)" onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-        <h2 class="tg-gold" style="font-weight:900;font-size:1.05rem">📞 聯繫我們</h2>
+        <h2 class="tg-gold" style="font-weight:900;font-size:1.05rem">📞 記得截圖喔~</h2>
         <button onclick="closeContact()" style="font-size:1.6rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:.7rem;padding:.5rem 0">

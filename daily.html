@@ -90,6 +90,12 @@
       </div>
     </div>
 
+    <!-- 記憶提示 -->
+    <div id="memoryBanner" style="display:none;margin-bottom:.75rem;padding:.5rem .85rem;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:.6rem;font-size:.8rem;align-items:center;justify-content:space-between;gap:.5rem">
+      <span id="memoryBannerText" style="color:#FFD700"></span>
+      <button class="btn btn-outline" onclick="clearMemory()" style="font-size:.72rem;padding:.25rem .6rem;color:rgba(255,255,255,.5);flex-shrink:0">清除記憶</button>
+    </div>
+
     <!-- 圖片 grid -->
     <div id="imgGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.85rem"></div>
 
@@ -126,6 +132,35 @@
 let items = []; // [{file, previewUrl, price}]
 
 /* ═══════════════════════════════════════
+   MEMORY (localStorage)
+═══════════════════════════════════════ */
+const STORAGE_KEY = 'aov_daily_prices';
+
+function saveMemory() {
+  const map = {};
+  items.forEach(i => { if (i.price) map[i.file.name] = i.price; });
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(map)); } catch(e) {}
+}
+
+function loadMemory() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+}
+
+function clearMemory() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  const banner = document.getElementById('memoryBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function showMemoryBanner(restored, total) {
+  const banner = document.getElementById('memoryBanner');
+  const text   = document.getElementById('memoryBannerText');
+  if (!banner || !text) return;
+  text.textContent = `💾 已帶回 ${restored} / ${total} 張圖片的價格記憶`;
+  banner.style.display = 'flex';
+}
+
+/* ═══════════════════════════════════════
    FILE INPUT
 ═══════════════════════════════════════ */
 function onFiles(e) { addFiles(Array.from(e.target.files)); }
@@ -134,15 +169,20 @@ function addMore()  { document.getElementById('fileInput').click(); }
 function addFiles(files) {
   const imgFiles = files.filter(f => /^image\//i.test(f.type));
   if (!imgFiles.length) return;
+  const mem = loadMemory();
+  let restored = 0;
   imgFiles.forEach(f => {
     // avoid duplicates by name
     if (items.find(i => i.file.name === f.name)) return;
     const url = URL.createObjectURL(f);
-    items.push({ file: f, previewUrl: url, price: '' });
+    const savedPrice = mem[f.name] || '';
+    if (savedPrice) restored++;
+    items.push({ file: f, previewUrl: url, price: savedPrice });
   });
   renderGrid();
   document.getElementById('dropZone').style.display = 'none';
   document.getElementById('listSection').style.display = 'block';
+  if (restored > 0) showMemoryBanner(restored, imgFiles.length);
 }
 
 /* drag & drop */
@@ -184,7 +224,7 @@ function renderGrid() {
   });
 }
 
-function setPrice(idx, val) { items[idx].price = val; checkMissing(); }
+function setPrice(idx, val) { items[idx].price = val; checkMissing(); saveMemory(); }
 function removeItem(idx) {
   URL.revokeObjectURL(items[idx].previewUrl);
   items.splice(idx, 1);
@@ -265,6 +305,7 @@ async function startUpload() {
   setProgress(items.length, items.length, '完成！');
   document.getElementById('doneMsg').style.display = 'block';
   document.getElementById('uploadBtn').disabled = false;
+  clearMemory(); // 上傳完成，清除記憶
 }
 
 function setProgress(done, total, text) {
