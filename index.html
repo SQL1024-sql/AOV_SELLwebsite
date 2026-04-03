@@ -326,6 +326,15 @@ function filteredList(){
   const pMax=S.priceMax!==''?Number(S.priceMax):null;
   if(pMin!==null&&!isNaN(pMin)) items=items.filter(a=>a.price>=pMin);
   if(pMax!==null&&!isNaN(pMax)) items=items.filter(a=>a.price<=pMax);
+  if(S.sortBy==='default'){
+    const maxPrice=Math.max(...items.map(a=>a.price),1);
+    const maxViews=Math.max(...items.map(a=>a.views),1);
+    items.sort((a,b)=>{
+      const sa=(a.views/maxViews)*70 + (a.price/maxPrice)*30;
+      const sb=(b.views/maxViews)*70 + (b.price/maxPrice)*30;
+      return sb-sa;
+    });
+  }
   if(S.sortBy==='price-asc')  items.sort((a,b)=>a.price-b.price);
   if(S.sortBy==='price-desc') items.sort((a,b)=>b.price-a.price);
   if(S.sortBy==='skins-desc') items.sort((a,b)=>b.skinCount-a.skinCount);
@@ -375,7 +384,7 @@ function renderNav(){
       `:isAdmin?`<div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.55)">商家後台</div>`:'<div style="flex:1"></div>'}
 
       <button onclick="openServiceModal('buy')" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.3rem;padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:rgba(255,215,0,.8);cursor:pointer" onmouseover="this.style.borderColor='rgba(255,215,0,.5)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,215,0,.2)';this.style.color='rgba(255,215,0,.8)'">
-        💰 收帳號
+        💰 賣帳號
       </button>
       <button onclick="openServiceModal('design')" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.3rem;padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(180,127,255,.08);border:1px solid rgba(180,127,255,.2);color:rgba(180,127,255,.85);cursor:pointer" onmouseover="this.style.borderColor='rgba(180,127,255,.5)';this.style.color='#B47FFF'" onmouseout="this.style.borderColor='rgba(180,127,255,.2)';this.style.color='rgba(180,127,255,.85)'">
         🎨 製圖
@@ -764,7 +773,7 @@ function renderContactModal(){
   </div>`;
 }
 
-/* ── SERVICE MODALS (收帳號 / 製圖) ── */
+/* ── SERVICE MODALS (賣帳號 / 製圖) ── */
 function renderServiceModal(){
   if(S.serviceModal==='buy') return renderBuyModal();
   if(S.serviceModal==='design') return renderDesignModal();
@@ -776,7 +785,7 @@ function renderBuyModal(){
   <div class="modal-backdrop" onclick="closeServiceModal()">
     <div class="modal-box glass" style="width:100%;max-width:380px;padding:1.5rem;border-color:rgba(255,215,0,.28)" onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
-        <h2 style="font-weight:900;font-size:1.05rem;color:#FFD700">💰 收帳號</h2>
+        <h2 style="font-weight:900;font-size:1.05rem;color:#FFD700">💰 賣帳號</h2>
         <button onclick="closeServiceModal()" style="font-size:1.6rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
       </div>
       <p style="font-size:.83rem;color:rgba(255,255,255,.55);margin-bottom:1.1rem;line-height:1.6">有帳號想出售嗎？歡迎透過以下方式聯繫我們，我們將盡快為您評估價格！</p>
@@ -819,7 +828,7 @@ function renderDesignModal(){
         ⚠️ 本服務不接急單，請提前預約
       </div>
 
-      <p style="font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:1rem;line-height:1.55">填寫以下資料後，我們將為您的帳號截圖並整理成精美展示圖。資料僅供製圖使用，完成後立即刪除。</p>
+      <p style="font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:1rem;line-height:1.55">填寫以下資料後，我們將為您的帳號截圖並整理成精美展示圖。資料僅供製圖使用，完成後立即刪除。(請隨時關注陌生訊息)</p>
 
       ${S.designError?`<div style="margin-bottom:.75rem;padding:.5rem .85rem;border-radius:.6rem;font-size:.77rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171">${esc(S.designError)}</div>`:''}
 
@@ -849,7 +858,7 @@ function renderDesignModal(){
       </div>
       <div class="form-group">
         <label class="form-label">聯繫方式 <span style="color:#f87171">*</span></label>
-        <input id="dsContact" type="text" class="inp" placeholder="FB / IG / Line ID…"/>
+        <input id="dsContact" type="text" class="inp" placeholder="FB / IG …"/>
       </div>
       <div class="form-group">
         <label class="form-label">備註</label>
