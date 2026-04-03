@@ -29,9 +29,9 @@ if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR, { recursive: true });
 
 app.use(express.json());
 
-/* Block direct static access to admin.html */
+/* Block direct static access to admin.html (any path) */
 app.use((req, res, next) => {
-  if (req.path === '/admin.html') return requireAuth(req, res, next);
+  if (req.path === '/admin.html' || req.path.endsWith('/admin.html')) return requireAuth(req, res, next);
   next();
 });
 
