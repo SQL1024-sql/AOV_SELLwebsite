@@ -276,6 +276,7 @@ function writeSubmissions(data) {
   fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
+
 /* POST /api/submissions  — public, customer submits */
 app.post('/api/submissions', (req, res) => {
   const { type, gameAccount, gamePassword, contact, note } = req.body;
