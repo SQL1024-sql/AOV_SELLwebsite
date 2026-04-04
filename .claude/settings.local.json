@@ -12,7 +12,11 @@
       "Bash(node -e \"require\\('./server.js'\\)\")",
       "Bash(curl -s http://localhost:3000/api/maintenance)",
       "Bash(kill %1)",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(gdown \"1Sg4ySnqfhFUN_eJDU0t7LjDyAxvHV6Dd\" -O acc_img/)",
+      "Bash(unzip -o \"acc_img/全部帳號-20260404T080235Z-3-001.zip\" -d acc_img/)"
     ]
   }
 }

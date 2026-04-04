@@ -13,7 +13,7 @@ IMG_EXTS   = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 # ══════════════════════════════════════════════════════
 try:
     from paddleocr import PaddleOCR
-    _ocr = PaddleOCR(use_angle_cls=True, lang='ch', show_log=False)
+    _ocr = PaddleOCR(use_angle_cls=True, lang='ch')
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False

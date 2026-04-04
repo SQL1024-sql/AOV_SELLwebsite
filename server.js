@@ -10,6 +10,7 @@ const DATA_DIR      = process.env.DATA_DIR || __dirname;
 const ACCOUNTS_FILE    = path.join(DATA_DIR, 'accounts.json');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 const MAINTENANCE_FILE = path.join(DATA_DIR, 'maintenance.json');
+const IMG_COUNTER_FILE = path.join(DATA_DIR, 'imgCounter.json');
 const IMG_DIR          = path.join(DATA_DIR, 'acc_img');
 
 /* ── Security Headers ── */
@@ -93,16 +94,22 @@ function writeAccounts(data) {
   fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
-/* ── Helper: generate next 8-digit image ID ── */
-function nextImgId(accounts) {
-  // Find highest numeric imgNAME across all accounts
-  let max = 0;
-  for (const acc of accounts) {
-    const base = acc.imgNAME ? path.parse(acc.imgNAME).name : '';
-    const n = parseInt(base, 10);
-    if (!isNaN(n) && n > max) max = n;
-  }
-  return String(max + 1).padStart(8, '0');
+/* ── Helper: generate next 8-digit image ID (persistent, never resets) ── */
+function nextImgId() {
+  let counter = 0;
+  try { counter = JSON.parse(fs.readFileSync(IMG_COUNTER_FILE, 'utf8')).imgId || 0; } catch {}
+  // Also scan accounts as a safety floor (in case counter file is missing)
+  try {
+    const accounts = readAccounts();
+    for (const acc of accounts) {
+      const base = acc.imgNAME ? path.parse(acc.imgNAME).name : '';
+      const n = parseInt(base, 10);
+      if (!isNaN(n) && n > counter) counter = n;
+    }
+  } catch {}
+  counter++;
+  fs.writeFileSync(IMG_COUNTER_FILE, JSON.stringify({ imgId: counter }), 'utf8');
+  return String(counter).padStart(8, '0');
 }
 
 /* ── MIME magic-byte validation (prevents extension spoofing) ── */
@@ -196,7 +203,7 @@ app.post('/api/accounts', requireAuth, upload.single('image'), (req, res) => {
   let imgNAME = '';
 
   if (req.file) {
-    const imgId  = nextImgId(accounts);
+    const imgId  = nextImgId();
     const ext    = path.extname(req.file.originalname).toLowerCase();
     imgNAME      = imgId + ext;
     const dest   = path.join(IMG_DIR, imgNAME);
@@ -248,7 +255,7 @@ app.put('/api/accounts/:id', requireAuth, upload.single('image'), (req, res) => 
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
     }
-    const imgId = nextImgId(accounts);
+    const imgId = nextImgId();
     const ext   = path.extname(req.file.originalname).toLowerCase();
     imgNAME     = imgId + ext;
     fs.renameSync(req.file.path, path.join(IMG_DIR, imgNAME));
