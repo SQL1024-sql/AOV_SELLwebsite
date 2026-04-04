@@ -302,6 +302,7 @@ const S = {
   designError: '',
   designSubmitting: false,
   designConfirmOpen: false,
+  designOrderNo: '',
   _dsFormData: { gameAccount:'', gamePassword:'', bindType:'', contact:'', note:'' },
   // admin
   adminTab:'listings',  // 'listings'
@@ -825,7 +826,14 @@ function renderDesignModal(){
     <div class="modal-box glass" style="width:100%;max-width:400px;padding:2rem;text-align:center;border-color:rgba(180,127,255,.3)" onclick="event.stopPropagation()">
       <div style="font-size:3rem;margin-bottom:.75rem">✅</div>
       <h2 style="font-weight:900;font-size:1.1rem;margin-bottom:.5rem;color:#B47FFF">已收到您的需求！</h2>
-      <p style="font-size:.83rem;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:1.2rem">我們會盡快與您聯繫，請留意您填寫的聯繫方式。</p>
+      ${S.designOrderNo?`
+      <div style="margin:.75rem auto .8rem;padding:.8rem 1.2rem;background:rgba(180,127,255,.1);border:1.5px solid rgba(180,127,255,.4);border-radius:.75rem;display:inline-block;min-width:180px">
+        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-bottom:.3rem;letter-spacing:.05em">您的製圖單號</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#B47FFF;letter-spacing:.08em">${esc(S.designOrderNo)}</div>
+        <button onclick="navigator.clipboard.writeText('${esc(S.designOrderNo)}').then(()=>{this.textContent='已複製！';setTimeout(()=>{this.textContent='複製單號'},1500)})" style="margin-top:.45rem;padding:.25rem .8rem;border-radius:.4rem;background:rgba(180,127,255,.18);border:1px solid rgba(180,127,255,.35);color:#B47FFF;cursor:pointer;font-size:.72rem;font-weight:700">複製單號</button>
+      </div>
+      <p style="font-size:.77rem;color:rgba(239,68,68,.8);margin-bottom:.7rem;line-height:1.55">請複製單號後聯繫我們告知，確認後才會開始製圖。</p>`:''}
+      <p style="font-size:.8rem;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:1.1rem">我們會盡快與您聯繫，請留意您填寫的聯繫方式。</p>
       <button onclick="closeServiceModal()" style="padding:.6rem 2rem;border-radius:.7rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;font-weight:700;font-size:.9rem">關閉</button>
     </div>
   </div>`;
@@ -901,7 +909,16 @@ function renderDesignPage(){
   <div style="max-width:42rem;margin:0 auto;padding:4rem 1rem;text-align:center;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
     <div style="font-size:4rem;margin-bottom:1rem">✅</div>
     <h2 style="font-weight:900;font-size:1.3rem;margin-bottom:.5rem;color:#B47FFF">已收到您的需求！</h2>
-    <p style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:1.5rem">我們會盡快與您聯繫，請留意您填寫的聯繫方式。</p>
+    ${S.designOrderNo?`
+    <div style="margin:.9rem 0 1.1rem;padding:1rem 1.5rem;background:rgba(180,127,255,.1);border:1.5px solid rgba(180,127,255,.4);border-radius:.85rem;display:inline-block">
+      <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-bottom:.35rem;letter-spacing:.05em">您的製圖單號</div>
+      <div style="font-size:1.6rem;font-weight:900;color:#B47FFF;letter-spacing:.08em;font-variant-numeric:tabular-nums">${esc(S.designOrderNo)}</div>
+      <button onclick="navigator.clipboard.writeText('${esc(S.designOrderNo)}').then(()=>{this.textContent='已複製！';setTimeout(()=>{this.textContent='複製單號'},1500)})" style="margin-top:.55rem;padding:.3rem .9rem;border-radius:.45rem;background:rgba(180,127,255,.18);border:1px solid rgba(180,127,255,.35);color:#B47FFF;cursor:pointer;font-size:.75rem;font-weight:700">複製單號</button>
+    </div>
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:.7rem;padding:.7rem .9rem;margin-bottom:1rem;font-size:.8rem;color:rgba(255,255,255,.65);line-height:1.6;text-align:left;max-width:320px">
+      <strong style="color:#f87171">提醒：</strong>請複製您的單號後，主動聯繫我們並告知單號，確認後才會開始製圖。
+    </div>`:''}
+    <p style="font-size:.88rem;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:1.5rem">我們會盡快與您聯繫，請留意您填寫的聯繫方式。</p>
     <button onclick="goHome()" style="padding:.7rem 2rem;border-radius:.7rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;font-weight:700;font-size:.9rem">返回首頁</button>
   </div>`;
 
@@ -1057,7 +1074,7 @@ function attachEvents(){
 function goHome(){document.body.style.overflow='';history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
 function goDetail(id){document.body.style.overflow='';history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;render();window.scrollTo({top:0,behavior:'instant'});}
 function goAdmin(){document.body.style.overflow='';history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
-function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;S.designConfirmOpen=false;S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render()}
+function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;S.designConfirmOpen=false;S.designOrderNo='';S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render()}
 
 /* List */
 function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
@@ -1144,8 +1161,11 @@ async function doSubmitDesign(){
       body=JSON.stringify({type:'design',gameAccount,gamePassword,bindType,contact,note});
     }
     const res=await fetch('/api/submissions',{method:'POST',headers,body});
-    if(res.ok){S.designStep='done';S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;}
-    else{const d=await res.json().catch(()=>({}));S.designError=d.error||'送出失敗，請稍後再試';}
+    if(res.ok){
+      const d=await res.json().catch(()=>({}));
+      S.designStep='done';S.designOrderNo=d.orderNo||'';
+      S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;
+    }else{const d=await res.json().catch(()=>({}));S.designError=d.error||'送出失敗，請稍後再試';}
   }catch(e){S.designError='連線失敗，請稍後再試';}
   S.designSubmitting=false;render();
 }

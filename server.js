@@ -363,8 +363,10 @@ app.post('/api/submissions', (req, res) => {
 
   const subs = readSubmissions();
   const newId = subs.length ? Math.max(...subs.map(s => s.id)) + 1 : 1;
+  const orderNo = 'DS' + String(newId).padStart(6, '0');
   const entry = {
     id:           newId,
+    orderNo,
     type:         String(type).slice(0, LIMITS.type),
     gameAccount:  String(gameAccount || '').slice(0, LIMITS.gameAccount),
     gamePassword: String(gamePassword || '').slice(0, LIMITS.gamePassword),
@@ -376,7 +378,7 @@ app.post('/api/submissions', (req, res) => {
   };
   subs.push(entry);
   writeSubmissions(subs);
-  res.status(201).json({ ok: true, id: newId });
+  res.status(201).json({ ok: true, id: newId, orderNo });
 });
 
 /* GET /api/submissions  — auth required */

@@ -112,12 +112,17 @@
 
   <!-- ═══ ORDERS TAB ═══ -->
   <div id="sectionOrders" style="display:none">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.75rem">
       <div>
         <h1 style="font-size:1.35rem;font-weight:900">製圖訂單</h1>
         <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">共 <span id="orderCount" style="color:#B47FFF;font-weight:700">0</span> 筆，待處理 <span id="orderPending" style="color:#f87171;font-weight:700">0</span> 筆</p>
       </div>
       <button class="btn btn-outline" onclick="loadOrders()" style="font-size:.78rem">↻ 重新整理</button>
+    </div>
+    <!-- Order search -->
+    <div style="position:relative;margin-bottom:1rem">
+      <svg style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);pointer-events:none;color:rgba(255,255,255,.32)" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input id="orderSearchInput" type="text" class="inp" placeholder="搜尋單號 / 聯繫方式 / 遊戲帳號…" style="padding-left:2.4rem;border-color:rgba(180,127,255,.25)" oninput="handleOrderSearch(this.value)"/>
     </div>
     <div id="ordersList"><!-- filled by JS --></div>
     <div id="ordersEmpty" style="display:none;text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
@@ -631,6 +636,7 @@ function switchTab(tab) {
    ORDERS
 ══════════════════════════════════════════════════════ */
 let orders = [];
+let orderSearchQuery = '';
 
 async function loadOrders() {
   try {
@@ -639,6 +645,11 @@ async function loadOrders() {
   } catch(e) {
     orders = [];
   }
+  renderOrders();
+}
+
+function handleOrderSearch(val) {
+  orderSearchQuery = val.trim().toLowerCase();
   renderOrders();
 }
 
@@ -653,7 +664,17 @@ function renderOrders() {
   if (pending > 0) { badge.style.display = 'inline'; badge.textContent = pending; }
   else { badge.style.display = 'none'; }
 
-  if (!orders.length) {
+  // Filter by search query
+  let filtered = orders;
+  if (orderSearchQuery) {
+    filtered = orders.filter(o =>
+      (o.orderNo  || '').toLowerCase().includes(orderSearchQuery) ||
+      (o.contact  || '').toLowerCase().includes(orderSearchQuery) ||
+      (o.gameAccount || '').toLowerCase().includes(orderSearchQuery)
+    );
+  }
+
+  if (!filtered.length) {
     list.innerHTML = '';
     empty.style.display = 'block';
     return;
@@ -661,7 +682,7 @@ function renderOrders() {
   empty.style.display = 'none';
 
   // Sort: pending first, then by date desc
-  const sorted = [...orders].sort((a, b) => {
+  const sorted = [...filtered].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
@@ -671,8 +692,8 @@ function renderOrders() {
     return `
     <div style="background:#0D0D26;border:1px solid ${o.done ? 'rgba(255,255,255,.06)' : 'rgba(180,127,255,.2)'};border-radius:.9rem;padding:1rem 1.1rem;margin-bottom:.75rem;opacity:${o.done ? '.55' : '1'}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
-        <div style="display:flex;align-items:center;gap:.55rem">
-          <span style="font-size:.72rem;color:rgba(255,255,255,.3)">#${o.id}</span>
+        <div style="display:flex;align-items:center;gap:.55rem;flex-wrap:wrap">
+          ${o.orderNo ? `<span style="font-size:.8rem;font-weight:900;color:#B47FFF;background:rgba(180,127,255,.12);border:1px solid rgba(180,127,255,.3);border-radius:.4rem;padding:.1rem .55rem;letter-spacing:.04em">${escH(o.orderNo)}</span>` : `<span style="font-size:.72rem;color:rgba(255,255,255,.3)">#${o.id}</span>`}
           <span style="font-size:.72rem;font-weight:700;padding:.15rem .55rem;border-radius:.35rem;background:${o.done ? 'rgba(255,255,255,.08)' : 'rgba(180,127,255,.15)'};color:${o.done ? 'rgba(255,255,255,.3)' : '#B47FFF'}">${o.done ? '✅ 已完成' : '⏳ 待處理'}</span>
           <span style="font-size:.72rem;color:rgba(255,255,255,.3)">${date}</span>
         </div>
