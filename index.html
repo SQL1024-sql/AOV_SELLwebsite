@@ -280,7 +280,7 @@ let accountsData = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
    STATE
    ===================================================== */
 const S = {
-  page:'list',          // 'list' | 'detail' | 'admin'
+  page:'list',          // 'list' | 'detail' | 'admin' | 'design'
   accountId:null,
   filterRank:'all',
   sortBy:'default',
@@ -355,7 +355,8 @@ function render(){
     renderNav()+
     (S.page==='list'   ? renderListPage()   :
      S.page==='detail' ? renderDetailPage() :
-     S.page==='admin'  ? renderAdminPage()  : '')+
+     S.page==='admin'  ? renderAdminPage()  :
+     S.page==='design' ? renderDesignPage() : '')+
     renderFooter()+
     (S.contactOpen!==false   ? renderContactModal()  : '')+
     (S.serviceModal           ? renderServiceModal()  : '')+
@@ -392,7 +393,7 @@ function renderNav(){
       <button onclick="openServiceModal('buy')" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.3rem;padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:rgba(255,215,0,.8);cursor:pointer" onmouseover="this.style.borderColor='rgba(255,215,0,.5)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,215,0,.2)';this.style.color='rgba(255,215,0,.8)'">
         💰 賣帳號
       </button>
-      <button onclick="openServiceModal('design')" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.3rem;padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(180,127,255,.08);border:1px solid rgba(180,127,255,.2);color:rgba(180,127,255,.85);cursor:pointer" onmouseover="this.style.borderColor='rgba(180,127,255,.5)';this.style.color='#B47FFF'" onmouseout="this.style.borderColor='rgba(180,127,255,.2)';this.style.color='rgba(180,127,255,.85)'">
+      <button onclick="goDesign()" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.3rem;padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:${S.page==='design'?'rgba(180,127,255,.18)':'rgba(180,127,255,.08)'};border:1px solid ${S.page==='design'?'rgba(180,127,255,.5)':'rgba(180,127,255,.2)'};color:${S.page==='design'?'#B47FFF':'rgba(180,127,255,.85)'};cursor:pointer" onmouseover="this.style.borderColor='rgba(180,127,255,.5)';this.style.color='#B47FFF'" onmouseout="this.style.borderColor='${S.page==='design'?'rgba(180,127,255,.5)':'rgba(180,127,255,.2)'}';this.style.color='${S.page==='design'?'#B47FFF':'rgba(180,127,255,.85)'}'">
         🎨 製圖
       </button>
       <button onclick="openContactModal(null)" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.35rem;padding:.38rem .8rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);cursor:pointer" onmouseover="this.style.borderColor='rgba(255,215,0,.4)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.color='rgba(255,255,255,.75)'">
@@ -841,6 +842,15 @@ function renderDesignModal(){
 
       <p style="font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:1rem;line-height:1.55">填寫以下資料後，我們將為您的帳號截圖並整理成精美展示圖。資料僅供製圖使用，完成後立即刪除。(請隨時關注陌生訊息)</p>
 
+      <div style="margin-bottom:1rem">
+        <div style="font-size:.78rem;font-weight:700;color:#B47FFF;margin-bottom:.5rem">💜 製圖服務價格</div>
+        <img src="https://image2url.com/r2/default/images/1775303502010-ba27ccef-e949-4d1c-8d67-b9e213f93543.jpeg"
+          alt="製圖服務價格表"
+          style="width:100%;border-radius:.75rem;border:1px solid rgba(180,127,255,.3);display:block"
+          loading="lazy"
+          onerror="this.onerror=null;this.style.display='none'"/>
+      </div>
+
       ${S.designError?`<div style="margin-bottom:.75rem;padding:.5rem .85rem;border-radius:.6rem;font-size:.77rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171">${esc(S.designError)}</div>`:''}
 
       <div class="form-group">
@@ -865,7 +875,6 @@ function renderDesignModal(){
           <option value="email">電子信箱</option>
           <option value="none">未綁定</option>
         </select>
-        <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">❓ 不確定如何查看？請參考下方圖片說明</div>
       </div>
       <div class="form-group">
         <label class="form-label">聯繫方式 <span style="color:#f87171">*</span></label>
@@ -879,13 +888,98 @@ function renderDesignModal(){
       <button onclick="submitDesign()" ${S.designSubmitting?'disabled':''} style="width:100%;padding:.65rem;border-radius:.7rem;font-weight:900;font-size:.92rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;opacity:${S.designSubmitting?'.6':'1'}">
         ${S.designSubmitting?'送出中…':'送出申請'}
       </button>
-
-      <!-- 綁定方式說明圖 -->
-      <div style="margin-top:1.2rem;border-top:1px solid rgba(180,127,255,.15);padding-top:1rem">
-        <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-bottom:.55rem;text-align:center">📖 如何查看帳號綁定方式</div>
-        <img src="/binding-guide.jpg" alt="綁定方式查看說明" style="width:100%;border-radius:.65rem;display:block" loading="lazy" decoding="async" onerror="this.onerror=null;this.style.display='none'"/>
-      </div>
     </div>
+  </div>`;
+}
+
+/* ── DESIGN PAGE ── */
+let _dsBindImg = null;
+
+function renderDesignPage(){
+  if(S.designStep==='done') return`
+  <div class="max-w-2xl mx-auto px-4 py-16" style="text-align:center;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div style="font-size:4rem;margin-bottom:1rem">✅</div>
+    <h2 style="font-weight:900;font-size:1.3rem;margin-bottom:.5rem;color:#B47FFF">已收到您的需求！</h2>
+    <p style="font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:1.5rem">我們會盡快與您聯繫，請留意您填寫的聯繫方式。</p>
+    <button onclick="goHome()" style="padding:.7rem 2rem;border-radius:.7rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;font-weight:700;font-size:.9rem">返回首頁</button>
+  </div>`;
+
+  return`
+  <div class="max-w-2xl mx-auto px-4 py-6 pb-16">
+    <div class="breadcrumb" style="display:flex;align-items:center;margin-bottom:1.5rem">
+      <a onclick="goHome()" style="cursor:pointer">首頁</a><span>›</span>
+      <span style="font-size:.78rem;color:rgba(255,255,255,.5)">製圖服務</span>
+    </div>
+
+    <h1 style="font-size:1.5rem;font-weight:900;color:#B47FFF;margin-bottom:.35rem">🎨 製圖服務</h1>
+    <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:.7rem;padding:.7rem .9rem;margin-bottom:1rem;font-size:.8rem;color:#f87171;font-weight:700">
+      ⚠️ 本服務不接急單，請提前預約
+    </div>
+    <p style="font-size:.85rem;color:rgba(255,255,255,.45);margin-bottom:1.2rem;line-height:1.6">填寫以下資料後，我們將為您的帳號截圖並整理成精美展示圖。資料僅供製圖使用，完成後立即刪除。(請隨時關注陌生訊息)</p>
+
+    <div style="margin-bottom:1.5rem">
+      <div style="font-size:.85rem;font-weight:700;color:#B47FFF;margin-bottom:.6rem">💜 製圖服務價格</div>
+      <img src="https://image2url.com/r2/default/images/1775303502010-ba27ccef-e949-4d1c-8d67-b9e213f93543.jpeg"
+        alt="製圖服務價格表"
+        style="width:100%;border-radius:.75rem;border:1px solid rgba(180,127,255,.3);display:block"
+        loading="lazy"
+        onerror="this.onerror=null;this.style.display='none'"/>
+    </div>
+
+    ${S.designError?`<div style="margin-bottom:.9rem;padding:.6rem .9rem;border-radius:.6rem;font-size:.82rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171">${esc(S.designError)}</div>`:''}
+
+    <div class="form-group">
+      <label class="form-label">遊戲帳號 <span style="color:#f87171">*</span></label>
+      <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">遊戲密碼 <span style="color:#f87171">*</span></label>
+      <div style="position:relative">
+        <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem"/>
+        <button type="button" onclick="togglePwVis()" style="position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.82rem" id="pwToggleBtn">👁</button>
+      </div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">🔒 資料加密傳輸，製圖完成後立即刪除</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">綁定方式 <span style="color:#f87171">*</span></label>
+      <select id="dsBindType" class="inp" style="cursor:pointer">
+        <option value="">請選擇綁定方式</option>
+        <option value="facebook">Facebook</option>
+        <option value="google">Google</option>
+        <option value="phone">手機號碼</option>
+        <option value="email">電子信箱</option>
+        <option value="none">未綁定</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">目前綁定截圖 <span style="color:rgba(255,255,255,.35);font-size:.72rem;font-weight:400">（選填）</span></label>
+      <div id="dsBindImgWrap" onclick="document.getElementById('dsBindImgInput').click()"
+        style="border:2px dashed rgba(180,127,255,.35);border-radius:.75rem;padding:1.25rem;text-align:center;cursor:pointer;transition:border-color .18s;background:rgba(180,127,255,.04)"
+        onmouseover="this.style.borderColor='rgba(180,127,255,.65)'" onmouseout="this.style.borderColor='rgba(180,127,255,.35)'">
+        <div id="dsBindImgPreview" style="display:none;margin-bottom:.6rem">
+          <img id="dsBindImgThumb" style="max-height:140px;border-radius:.5rem;margin:0 auto;display:block"/>
+          <div style="font-size:.72rem;color:rgba(255,255,255,.35);margin-top:.4rem">點擊可重新選擇</div>
+        </div>
+        <div id="dsBindImgPlaceholder">
+          <div style="font-size:1.8rem;margin-bottom:.35rem">📷</div>
+          <div style="font-size:.82rem;color:rgba(255,255,255,.5)">點擊上傳綁定截圖</div>
+          <div style="font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.2rem">JPG / PNG，最大 5MB</div>
+        </div>
+      </div>
+      <input id="dsBindImgInput" type="file" accept="image/*" style="display:none" onchange="handleBindImgChange(this)"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">聯繫方式 <span style="color:#f87171">*</span></label>
+      <input id="dsContact" type="text" class="inp" placeholder="FB / IG …"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註</label>
+      <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:80px"></textarea>
+    </div>
+
+    <button onclick="submitDesign()" ${S.designSubmitting?'disabled':''} style="width:100%;padding:.72rem;border-radius:.7rem;font-weight:900;font-size:.95rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;opacity:${S.designSubmitting?'.6':'1'};box-shadow:0 0 22px rgba(180,127,255,.28)">
+      ${S.designSubmitting?'送出中…':'送出申請'}
+    </button>
   </div>`;
 }
 
@@ -963,6 +1057,7 @@ function attachEvents(){
 function goHome(){document.body.style.overflow='';history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
 function goDetail(id){document.body.style.overflow='';history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;render();window.scrollTo({top:0,behavior:'instant'});}
 function goAdmin(){document.body.style.overflow='';history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
+function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render()}
 
 /* List */
 function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
@@ -1004,6 +1099,23 @@ function togglePwVis(){
   inp.type=inp.type==='password'?'text':'password';
   if(btn)btn.textContent=inp.type==='password'?'👁':'🙈';
 }
+function handleBindImgChange(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>5*1024*1024){alert('圖片大小不能超過 5MB');input.value='';return;}
+  _dsBindImg=file;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const thumb=document.getElementById('dsBindImgThumb');
+    const preview=document.getElementById('dsBindImgPreview');
+    const ph=document.getElementById('dsBindImgPlaceholder');
+    if(thumb)thumb.src=e.target.result;
+    if(preview)preview.style.display='block';
+    if(ph)ph.style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
 async function submitDesign(){
   const g=id=>document.getElementById(id)?.value?.trim()||'';
   const gameAccount=g('dsGameAcc'),gamePassword=g('dsGamePw'),contact=g('dsContact'),note=g('dsNote');
@@ -1011,8 +1123,19 @@ async function submitDesign(){
   if(!gameAccount||!gamePassword||!bindType||!contact){S.designError='請填寫所有必填欄位';render();return}
   S.designSubmitting=true;S.designError='';render();
   try{
-    const res=await fetch('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'design',gameAccount,gamePassword,bindType,contact,note})});
-    if(res.ok){S.designStep='done';}
+    let body,headers={};
+    if(_dsBindImg){
+      const fd=new FormData();
+      fd.append('type','design');fd.append('gameAccount',gameAccount);fd.append('gamePassword',gamePassword);
+      fd.append('bindType',bindType);fd.append('contact',contact);fd.append('note',note);
+      fd.append('bindImg',_dsBindImg);
+      body=fd;
+    }else{
+      headers={'Content-Type':'application/json'};
+      body=JSON.stringify({type:'design',gameAccount,gamePassword,bindType,contact,note});
+    }
+    const res=await fetch('/api/submissions',{method:'POST',headers,body});
+    if(res.ok){S.designStep='done';_dsBindImg=null;}
     else{const d=await res.json().catch(()=>({}));S.designError=d.error||'送出失敗，請稍後再試';}
   }catch(e){S.designError='連線失敗，請稍後再試';}
   S.designSubmitting=false;render();
@@ -1101,6 +1224,7 @@ window.addEventListener('popstate',()=>{
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;S.activeImg=0;}}
   else if(h==='#/admin'){S.page='admin';}
+  else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;_dsBindImg=null;}
   else{S.page='list';S.accountId=null;}
   render();
   window.scrollTo({top:0,behavior:'instant'});
@@ -1110,6 +1234,7 @@ window.addEventListener('popstate',()=>{
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;}}
   else if(h==='#/admin'){S.page='admin';}
+  else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';}
   // Check maintenance mode before rendering
   try {
     const mr = await fetch('/api/maintenance');
