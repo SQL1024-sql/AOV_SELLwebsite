@@ -1,25 +1,12 @@
-import json
 import os
 import re
-import requests
-from requests.auth import HTTPBasicAuth
 from PIL import Image
-
-# ── 設定從環境變數讀取（不要把密碼寫在程式碼裡）────────
-BASE_URL   = os.environ.get('SITE_URL',    'https://aovsellwebsite-production.up.railway.app')
-ADMIN_USER = os.environ.get('ADMIN_USER')
-ADMIN_PASS = os.environ.get('ADMIN_PASS')
-if not ADMIN_USER or not ADMIN_PASS:
-    raise SystemExit('❌ 請先設定環境變數 ADMIN_USER 和 ADMIN_PASS，例如：\n'
-                     '   export ADMIN_USER=你的帳號\n'
-                     '   export ADMIN_PASS=你的密碼')
-# ─────────────────────────────────────────────────────
+import openpyxl
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 IMG_DIR    = os.path.join(SCRIPT_DIR, 'acc_img')
+XLSX_PATH  = os.path.join(SCRIPT_DIR, '圖片清單.xlsx')
 IMG_EXTS   = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
-
-auth = HTTPBasicAuth(ADMIN_USER, ADMIN_PASS)
 
 # ══════════════════════════════════════════════════════
 # OCR 辨識價格（PaddleOCR PP-OCRv4）
@@ -52,23 +39,14 @@ def parse_price_value(raw: str) -> int | None:
 
 
 def _pick_best_price(candidates: list[str]) -> int | None:
-    """
-    從 OCR 辨識出的所有文字中挑選最像價格的數字。
-    優先順序：
-      1. 帶小數點的數字（如 1.2、5.3）→ 萬元格式
-      2. 3~6 位整數（直接當 NT$ 金額）
-    回傳轉換後的整數，找不到回傳 None。
-    """
     decimal_pat = re.compile(r'\b(\d{1,2}\.\d)\b')
     integer_pat = re.compile(r'\b(\d{3,6})\b')
 
-    # 優先找小數格式
     for text in candidates:
         m = decimal_pat.search(text)
         if m:
             return parse_price_value(m.group(1))
 
-    # 再找整數格式
     for text in candidates:
         m = integer_pat.search(text)
         if m:
@@ -78,14 +56,12 @@ def _pick_best_price(candidates: list[str]) -> int | None:
 
 
 def recognize_price_with_ocr(img_path: str) -> int | None:
-    """用 PaddleOCR 辨識圖片中的價格，回傳 NT$ 整數。"""
     if not OCR_AVAILABLE:
         return None
     try:
         result = _ocr.ocr(img_path, cls=True)
         if not result or not result[0]:
             return None
-        # result[0] = [ [bbox, [text, confidence]], ... ]
         texts = [line[1][0] for line in result[0] if line[1][1] > 0.5]
         return _pick_best_price(texts)
     except Exception as e:
@@ -94,7 +70,6 @@ def recognize_price_with_ocr(img_path: str) -> int | None:
 
 
 def recognize_price(img_path: str) -> tuple[int | None, str]:
-    """辨識價格，回傳 (價格, 來源)。"""
     if OCR_AVAILABLE:
         price = recognize_price_with_ocr(img_path)
         if price:
@@ -103,21 +78,7 @@ def recognize_price(img_path: str) -> tuple[int | None, str]:
 
 
 # ══════════════════════════════════════════════════════
-# 步驟 1：清空舊資料
-# ══════════════════════════════════════════════════════
-def clear_all():
-    resp = requests.get(f'{BASE_URL}/api/accounts', auth=auth)
-    accounts = resp.json()
-    if not accounts:
-        print('目前沒有舊資料，跳過清除。')
-        return
-    print(f'正在清除 {len(accounts)} 筆舊帳號...')
-    for acc in accounts:
-        requests.delete(f'{BASE_URL}/api/accounts/{acc["id"]}', auth=auth)
-    print('✅ 清除完成\n')
-
-# ══════════════════════════════════════════════════════
-# 步驟 2：輸入每張圖的價格
+# 步驟 1：辨識 acc_img/ 裡的圖片並收集價格
 # ══════════════════════════════════════════════════════
 def collect_prices():
     files = sorted([
@@ -126,11 +87,10 @@ def collect_prices():
     ])
 
     if not files:
-        print(f'❌ acc_img/ 資料夾裡沒有圖片，請先把圖片放進去。')
+        print('❌ acc_img/ 資料夾裡沒有圖片，請先把圖片放進去。')
         return []
 
-    auto_available = OCR_AVAILABLE
-    if auto_available:
+    if OCR_AVAILABLE:
         print(f'找到 {len(files)} 張圖片，使用 PaddleOCR 自動辨識價格。\n')
         print('（直接按 Enter 採用辨識結果；輸入新數字覆蓋；輸入 s 跳過；輸入 q 中止）\n')
         print('價格規則：有小數點的 1 代表 10000（例：1.2→12000，5.3→53000）\n')
@@ -142,17 +102,16 @@ def collect_prices():
     orders = []
     for i, fname in enumerate(files, 1):
         img_path = os.path.join(IMG_DIR, fname)
+        stem = os.path.splitext(fname)[0]
 
-        # 開啟系統看圖軟體
         try:
             img = Image.open(img_path)
             img.show()
         except Exception as e:
             print(f'  無法開啟圖片：{e}')
 
-        # 自動辨識（本地 OCR → 雲端備援）
         ai_price = None
-        if auto_available:
+        if OCR_AVAILABLE:
             print(f'[{i}/{len(files)}] {fname}  ⏳ 辨識中...', end='', flush=True)
             ai_price, source = recognize_price(img_path)
             if ai_price:
@@ -174,16 +133,14 @@ def collect_prices():
             if val.lower() == 's':
                 print(f'  跳過 {fname}')
                 break
-            # 直接按 Enter → 採用 AI 辨識結果
             if val == '' and ai_price:
-                orders.append({'fname': fname, 'price': ai_price})
+                orders.append({'stem': stem, 'price': ai_price})
                 print(f'  ✅ NT$ {ai_price:,}')
                 break
-            # 手動輸入（支援小數點格式）
             if val:
                 parsed = parse_price_value(val)
                 if parsed and parsed > 0:
-                    orders.append({'fname': fname, 'price': parsed})
+                    orders.append({'stem': stem, 'price': parsed})
                     break
                 print('  請輸入正整數或小數（如 1.2=12000），或輸入 s 跳過、q 中止')
             else:
@@ -191,45 +148,37 @@ def collect_prices():
 
     return orders
 
+
 # ══════════════════════════════════════════════════════
-# 步驟 3：確認後上傳
+# 步驟 2：清空並寫入 圖片清單.xlsx
 # ══════════════════════════════════════════════════════
-def upload_all(orders):
+def write_xlsx(orders):
     print('\n── 確認清單 ──────────────────────────')
     for o in orders:
-        print(f'  {o["fname"]:30s}  NT$ {o["price"]:,}')
+        print(f'  {o["stem"]:30s}  NT$ {o["price"]:,}')
     print(f'──────────────────────────────────────')
-    print(f'共 {len(orders)} 筆，準備上傳。')
+    print(f'共 {len(orders)} 筆，準備寫入 圖片清單.xlsx。')
 
-    confirm = input('\n確認上傳？(y/n): ').strip().lower()
+    confirm = input('\n確認寫入？(y/n): ').strip().lower()
     if confirm != 'y':
         print('取消。')
         return
 
-    print()
-    for i, o in enumerate(orders, 1):
-        img_path = os.path.join(IMG_DIR, o['fname'])
-        try:
-            with open(img_path, 'rb') as f:
-                resp = requests.post(
-                    f'{BASE_URL}/api/accounts',
-                    data={'price': str(o['price'])},
-                    files={'image': (o['fname'], f)},
-                    auth=auth
-                )
-            if resp.status_code == 201:
-                print(f'[{i}/{len(orders)}] ✅ {o["fname"]}  NT$ {o["price"]:,}')
-            else:
-                print(f'[{i}/{len(orders)}] ❌ {o["fname"]} 失敗: {resp.status_code} {resp.text}')
-        except Exception as e:
-            print(f'[{i}/{len(orders)}] ❌ {o["fname"]} 錯誤: {e}')
+    # 清空並重建工作表
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Sheet1'
 
-    print('\n🎉 上傳完成！')
+    for o in orders:
+        ws.append([o['stem'], None, o['price']])
+
+    wb.save(XLSX_PATH)
+    print(f'\n🎉 已寫入 {len(orders)} 筆資料到 圖片清單.xlsx')
+
 
 # ══════════════════════════════════════════════════════
 if __name__ == '__main__':
-    print('=== AOV 帳號每日上傳工具 ===\n')
-    clear_all()
+    print('=== AOV 圖片清單產生工具 ===\n')
     orders = collect_prices()
     if orders:
-        upload_all(orders)
+        write_xlsx(orders)
