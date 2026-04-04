@@ -11,6 +11,7 @@ const ACCOUNTS_FILE    = path.join(DATA_DIR, 'accounts.json');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 const MAINTENANCE_FILE = path.join(DATA_DIR, 'maintenance.json');
 const IMG_COUNTER_FILE = path.join(DATA_DIR, 'imgCounter.json');
+const BUG_REPORTS_FILE = path.join(DATA_DIR, 'bug_reports.json');
 const IMG_DIR          = path.join(DATA_DIR, 'acc_img');
 
 /* ── Security Headers ── */
@@ -429,6 +430,70 @@ app.delete('/api/submissions/:id', requireAuth, (req, res) => {
   if (idx === -1) return res.status(404).json({ error: '訂單不存在' });
   subs.splice(idx, 1);
   writeSubmissions(subs);
+  res.json({ ok: true });
+});
+
+/* ══════════════════════════════════════════════════════════
+   BUG REPORTS API
+══════════════════════════════════════════════════════════ */
+
+function readBugReports() {
+  try { return JSON.parse(fs.readFileSync(BUG_REPORTS_FILE, 'utf8')); }
+  catch(e) { return []; }
+}
+function writeBugReports(data) {
+  fs.writeFileSync(BUG_REPORTS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+/* POST /api/bug-reports  — public */
+app.post('/api/bug-reports', (req, res) => {
+  const { description, contact, page } = req.body;
+  if (!description) return res.status(400).json({ error: '請填寫問題描述' });
+
+  const LIMITS = { description: 2000, contact: 200, page: 100 };
+  if (String(description).length > LIMITS.description) return res.status(400).json({ error: '描述超過長度限制' });
+  if (contact && String(contact).length > LIMITS.contact) return res.status(400).json({ error: '聯繫方式超過長度限制' });
+  if (page    && String(page).length    > LIMITS.page)    return res.status(400).json({ error: '頁面欄位超過長度限制' });
+
+  const reports = readBugReports();
+  const newId = reports.length ? Math.max(...reports.map(r => r.id)) + 1 : 1;
+  const entry = {
+    id:          newId,
+    description: String(description).slice(0, LIMITS.description),
+    contact:     String(contact || '').slice(0, LIMITS.contact),
+    page:        String(page    || '').slice(0, LIMITS.page),
+    createdAt:   new Date().toISOString(),
+    resolved:    false,
+  };
+  reports.push(entry);
+  writeBugReports(reports);
+  res.status(201).json({ ok: true, id: newId });
+});
+
+/* GET /api/bug-reports  — auth required */
+app.get('/api/bug-reports', requireAuth, (req, res) => {
+  res.json(readBugReports());
+});
+
+/* PATCH /api/bug-reports/:id  — toggle resolved, auth required */
+app.patch('/api/bug-reports/:id', requireAuth, (req, res) => {
+  const reports = readBugReports();
+  const id  = parseInt(req.params.id, 10);
+  const idx = reports.findIndex(r => r.id === id);
+  if (idx === -1) return res.status(404).json({ error: '回報不存在' });
+  reports[idx].resolved = !reports[idx].resolved;
+  writeBugReports(reports);
+  res.json(reports[idx]);
+});
+
+/* DELETE /api/bug-reports/:id  — auth required */
+app.delete('/api/bug-reports/:id', requireAuth, (req, res) => {
+  const reports = readBugReports();
+  const id  = parseInt(req.params.id, 10);
+  const idx = reports.findIndex(r => r.id === id);
+  if (idx === -1) return res.status(404).json({ error: '回報不存在' });
+  reports.splice(idx, 1);
+  writeBugReports(reports);
   res.json({ ok: true });
 });
 

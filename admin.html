@@ -105,6 +105,7 @@
   <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:1.25rem">
     <button id="tabListings" onclick="switchTab('listings')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:#FFD700;border-bottom:2px solid #FFD700;transition:all .18s">📋 貼文管理</button>
     <button id="tabOrders" onclick="switchTab('orders')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">🎨 製圖訂單 <span id="orderBadge" style="display:none;background:#f87171;color:#fff;border-radius:999px;padding:.05rem .45rem;font-size:.68rem;margin-left:.3rem">0</span></button>
+    <button id="tabBugs" onclick="switchTab('bugs')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">🐛 Bug 回報 <span id="bugBadge" style="display:none;background:#f87171;color:#fff;border-radius:999px;padding:.05rem .45rem;font-size:.68rem;margin-left:.3rem">0</span></button>
   </div>
 
   <!-- ═══ LISTINGS TAB ═══ -->
@@ -153,6 +154,23 @@
     <div id="ordersEmpty" style="display:none;text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
       <div style="font-size:3rem;margin-bottom:1rem">📭</div>
       <div style="font-size:1rem;font-weight:600">目前沒有製圖訂單</div>
+    </div>
+  </div>
+
+
+  <!-- ═══ BUGS TAB ═══ -->
+  <div id="sectionBugs" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.75rem">
+      <div>
+        <h1 style="font-size:1.35rem;font-weight:900">Bug 回報</h1>
+        <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">共 <span id="bugCount" style="color:#f87171;font-weight:700">0</span> 筆，未解決 <span id="bugPending" style="color:#f87171;font-weight:700">0</span> 筆</p>
+      </div>
+      <button class="btn btn-outline" onclick="loadBugReports()" style="font-size:.78rem">↻ 重新整理</button>
+    </div>
+    <div id="bugsList"></div>
+    <div id="bugsEmpty" style="display:none;text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
+      <div style="font-size:3rem;margin-bottom:1rem">✅</div>
+      <div style="font-size:1rem;font-weight:600">目前沒有 Bug 回報</div>
     </div>
   </div>
 
@@ -303,7 +321,7 @@ const PER_PAGE  = 30;
    INIT
 ══════════════════════════════════════════════════════ */
 async function init() {
-  await Promise.all([loadAccounts(), loadMaintenance(), loadOrders()]);
+  await Promise.all([loadAccounts(), loadMaintenance(), loadOrders(), loadBugReports()]);
   renderGrid();
 }
 
@@ -665,11 +683,15 @@ function switchTab(tab) {
   currentTab = tab;
   document.getElementById('sectionListings').style.display = tab === 'listings' ? 'block' : 'none';
   document.getElementById('sectionOrders').style.display   = tab === 'orders'   ? 'block' : 'none';
-  document.getElementById('tabListings').style.color      = tab === 'listings' ? '#FFD700'              : 'rgba(255,255,255,.4)';
-  document.getElementById('tabListings').style.borderBottomColor = tab === 'listings' ? '#FFD700' : 'transparent';
-  document.getElementById('tabOrders').style.color        = tab === 'orders'   ? '#B47FFF'              : 'rgba(255,255,255,.4)';
-  document.getElementById('tabOrders').style.borderBottomColor   = tab === 'orders'   ? '#B47FFF' : 'transparent';
+  document.getElementById('sectionBugs').style.display     = tab === 'bugs'     ? 'block' : 'none';
+  document.getElementById('tabListings').style.color             = tab === 'listings' ? '#FFD700'              : 'rgba(255,255,255,.4)';
+  document.getElementById('tabListings').style.borderBottomColor = tab === 'listings' ? '#FFD700'              : 'transparent';
+  document.getElementById('tabOrders').style.color               = tab === 'orders'   ? '#B47FFF'              : 'rgba(255,255,255,.4)';
+  document.getElementById('tabOrders').style.borderBottomColor   = tab === 'orders'   ? '#B47FFF'              : 'transparent';
+  document.getElementById('tabBugs').style.color                 = tab === 'bugs'     ? '#f87171'              : 'rgba(255,255,255,.4)';
+  document.getElementById('tabBugs').style.borderBottomColor     = tab === 'bugs'     ? '#f87171'              : 'transparent';
   if (tab === 'orders') loadOrders();
+  if (tab === 'bugs')   loadBugReports();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -800,6 +822,99 @@ async function deleteOrder(id) {
     orders.splice(orders.findIndex(o => o.id === id), 1);
     renderOrders();
     showToast('🗑️ 訂單已刪除', 'info');
+  } catch(e) { showToast('❌ 刪除失敗', 'error'); }
+}
+
+/* ══════════════════════════════════════════════════════
+   BUG REPORTS
+══════════════════════════════════════════════════════ */
+let bugReports = [];
+
+async function loadBugReports() {
+  try {
+    const res = await fetch('/api/bug-reports');
+    bugReports = await res.json();
+  } catch(e) {
+    bugReports = [];
+  }
+  renderBugReports();
+}
+
+function renderBugReports() {
+  const list    = document.getElementById('bugsList');
+  const empty   = document.getElementById('bugsEmpty');
+  if (!list) return;
+
+  const pending = bugReports.filter(r => !r.resolved).length;
+  document.getElementById('bugCount').textContent   = bugReports.length;
+  document.getElementById('bugPending').textContent = pending;
+
+  const badge = document.getElementById('bugBadge');
+  if (pending > 0) { badge.style.display = 'inline'; badge.textContent = pending; }
+  else { badge.style.display = 'none'; }
+
+  if (!bugReports.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const sorted = [...bugReports].sort((a, b) => {
+    if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  list.innerHTML = sorted.map(r => {
+    const date = new Date(r.createdAt).toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    return `
+    <div style="background:#0D0D26;border:1px solid ${r.resolved ? 'rgba(255,255,255,.06)' : 'rgba(239,68,68,.2)'};border-radius:.9rem;padding:1rem 1.1rem;margin-bottom:.75rem;opacity:${r.resolved ? '.5' : '1'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem;flex-wrap:wrap;gap:.5rem">
+        <div style="display:flex;align-items:center;gap:.55rem;flex-wrap:wrap">
+          <span style="font-size:.72rem;color:rgba(255,255,255,.3)">#${r.id}</span>
+          <span style="font-size:.72rem;font-weight:700;padding:.15rem .55rem;border-radius:.35rem;background:${r.resolved ? 'rgba(255,255,255,.08)' : 'rgba(239,68,68,.15)'};color:${r.resolved ? 'rgba(255,255,255,.3)' : '#f87171'}">${r.resolved ? '✅ 已解決' : '🐛 未解決'}</span>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.3)">${date}</span>
+        </div>
+        <div style="display:flex;gap:.4rem">
+          <button class="btn ${r.resolved ? 'btn-outline' : 'btn-green'}" style="font-size:.72rem;padding:.3rem .7rem" onclick="toggleBugReport(${r.id})">${r.resolved ? '↩ 標為未解決' : '✓ 標為解決'}</button>
+          <button class="btn btn-red" style="font-size:.72rem;padding:.3rem .65rem" onclick="deleteBugReport(${r.id})">🗑</button>
+        </div>
+      </div>
+      <div style="margin-bottom:.5rem">
+        <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.3rem">問題描述</div>
+        <div style="font-size:.85rem;color:#fff;line-height:1.65;white-space:pre-wrap;word-break:break-word">${escH(r.description)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.4rem .9rem;margin-top:.5rem">
+        ${r.page ? `<div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.15rem">頁面 / 功能</div>
+          <div style="font-size:.82rem;color:rgba(255,215,0,.8);font-weight:700">${escH(r.page)}</div>
+        </div>` : ''}
+        ${r.contact ? `<div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.15rem">聯繫方式</div>
+          <div style="font-size:.82rem;color:#63B3ED;font-weight:700;word-break:break-all">${escH(r.contact)}</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleBugReport(id) {
+  try {
+    const res = await fetch(`/api/bug-reports/${id}`, { method: 'PATCH' });
+    const updated = await res.json();
+    const idx = bugReports.findIndex(r => r.id === id);
+    if (idx !== -1) bugReports[idx] = updated;
+    renderBugReports();
+  } catch(e) { showToast('❌ 操作失敗', 'error'); }
+}
+
+async function deleteBugReport(id) {
+  if (!confirm('確定要刪除這筆 Bug 回報？')) return;
+  try {
+    await fetch(`/api/bug-reports/${id}`, { method: 'DELETE' });
+    bugReports.splice(bugReports.findIndex(r => r.id === id), 1);
+    renderBugReports();
+    showToast('🗑️ 已刪除', 'info');
   } catch(e) { showToast('❌ 刪除失敗', 'error'); }
 }
 

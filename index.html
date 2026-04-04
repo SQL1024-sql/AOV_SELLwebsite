@@ -305,6 +305,11 @@ const S = {
   designConfirmOpen: false,
   designOrderNo: '',
   _dsFormData: { gameAccount:'', gamePassword:'', bindType:'', contact:'', note:'' },
+  // bug report
+  bugReportOpen: false,
+  bugReportStep: 'form',  // 'form' | 'done'
+  bugReportError: '',
+  bugReportSubmitting: false,
   // admin
   adminTab:'listings',  // 'listings'
   formOpen:false,       // add / edit modal
@@ -367,7 +372,8 @@ function render(){
     (S.lightboxOpen          ? renderLightbox()      : '')+
     (S.formOpen              ? renderFormModal()     : '')+
     (S.deleteConfirmId!==null? renderDeleteConfirm() : '')+
-    (S.designConfirmOpen     ? renderDesignConfirmModal() : '');
+    (S.designConfirmOpen     ? renderDesignConfirmModal() : '')+
+    (S.bugReportOpen         ? renderBugReportModal()    : '');
   attachEvents();
 }
 
@@ -1087,6 +1093,7 @@ function renderFooter(){
     <div class="footer-inner">
       <div class="tg-gold" style="font-size:.85rem;font-weight:700">⚔ 傳說對決 帳號展示平台</div>
       <p class="copyright">© ${new Date().getFullYear()} AOV Account Shop · All rights reserved</p>
+      <button onclick="openBugReport()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:rgba(255,100,100,.7);border-radius:.5rem;padding:.28rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s" onmouseover="this.style.background='rgba(239,68,68,.18)';this.style.color='#f87171'" onmouseout="this.style.background='rgba(239,68,68,.08)';this.style.color='rgba(255,100,100,.7)'">🐛 回報問題</button>
     </div>
   </footer>`;
 }
@@ -1097,7 +1104,7 @@ function renderFooter(){
 function attachEvents(){
   document.onkeydown=(e)=>{
     if(S.lightboxOpen){if(e.key==='ArrowLeft')navImg(-1);if(e.key==='ArrowRight')navImg(1);if(e.key==='Escape')closeLightbox();}
-    else if(e.key==='Escape'){closeContact();closeLogin();closeForm();closeServiceModal();S.deleteConfirmId=null;}
+    else if(e.key==='Escape'){closeContact();closeLogin();closeForm();closeServiceModal();S.deleteConfirmId=null;if(S.bugReportOpen)closeBugReport();}
   };
 }
 
@@ -1241,6 +1248,87 @@ function toggleDsConfirmBtn(){
 }
 
 function closeDesignConfirm(){S.designConfirmOpen=false;render();}
+
+/* ── Bug Report Modal ── */
+function renderBugReportModal(){
+  if(S.bugReportStep==='done') return`
+  <div class="modal-backdrop" onclick="closeBugReport()">
+    <div class="modal-box glass" style="width:100%;max-width:400px;padding:2rem;text-align:center;border-color:rgba(239,68,68,.3)" onclick="event.stopPropagation()">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">✅</div>
+      <h3 style="font-size:1.1rem;font-weight:900;margin-bottom:.5rem">感謝您的回報！</h3>
+      <p style="font-size:.85rem;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:1.25rem">我們已收到您的問題回報，<br>將盡快確認並修復。</p>
+      <button onclick="closeBugReport()" style="padding:.6rem 2rem;border-radius:.65rem;background:linear-gradient(135deg,#f87171,#ef4444);color:#fff;border:none;cursor:pointer;font-weight:700;font-size:.9rem">關閉</button>
+    </div>
+  </div>`;
+
+  return`
+  <div class="modal-backdrop" onclick="closeBugReport()">
+    <div class="modal-box glass" style="width:100%;max-width:460px;padding:1.5rem;border-color:rgba(239,68,68,.3)" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
+        <h3 style="font-weight:900;font-size:1rem;color:#f87171">🐛 回報問題</h3>
+        <button onclick="closeBugReport()" style="font-size:1.5rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
+      </div>
+      <div style="margin-bottom:.85rem">
+        <label class="form-label">遇到的問題描述 <span style="color:#f87171">*</span></label>
+        <textarea class="inp" id="bugDesc" placeholder="請描述您遇到的問題，例如頁面錯誤、功能異常、顯示問題等…" rows="4" style="resize:vertical;min-height:100px">${esc(S._bugFormData?.description||'')}</textarea>
+      </div>
+      <div style="margin-bottom:.85rem">
+        <label class="form-label">發生的頁面 / 功能（選填）</label>
+        <input class="inp" id="bugPage" type="text" placeholder="例如：帳號列表、製圖服務、聯繫我們…" value="${esc(S._bugFormData?.page||'')}"/>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label class="form-label">您的聯繫方式（選填，方便我們回覆）</label>
+        <input class="inp" id="bugContact" type="text" placeholder="LINE ID / Discord / Email…" value="${esc(S._bugFormData?.contact||'')}"/>
+      </div>
+      ${S.bugReportError?`<div style="color:#f87171;font-size:.78rem;margin-bottom:.75rem;padding:.5rem .8rem;background:rgba(239,68,68,.1);border-radius:.5rem;border:1px solid rgba(239,68,68,.25)">${esc(S.bugReportError)}</div>`:''}
+      <div style="display:flex;gap:.6rem;justify-content:flex-end">
+        <button onclick="closeBugReport()" style="padding:.5rem 1rem;border-radius:.6rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);cursor:pointer;font-size:.85rem;font-weight:700">取消</button>
+        <button onclick="submitBugReport()" style="padding:.5rem 1.2rem;border-radius:.6rem;background:linear-gradient(135deg,#f87171,#ef4444);color:#fff;border:none;cursor:pointer;font-size:.85rem;font-weight:700;opacity:${S.bugReportSubmitting?.6:1}"${S.bugReportSubmitting?' disabled':''}>
+          ${S.bugReportSubmitting?'送出中…':'送出回報'}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openBugReport(){
+  S.bugReportOpen=true;
+  S.bugReportStep='form';
+  S.bugReportError='';
+  S.bugReportSubmitting=false;
+  S._bugFormData={description:'',page:'',contact:''};
+  document.body.style.overflow='hidden';
+  render();
+}
+function closeBugReport(){
+  S.bugReportOpen=false;
+  document.body.style.overflow='';
+  render();
+}
+async function submitBugReport(){
+  const description=(document.getElementById('bugDesc')?.value||'').trim();
+  const page=(document.getElementById('bugPage')?.value||'').trim();
+  const contact=(document.getElementById('bugContact')?.value||'').trim();
+  S._bugFormData={description,page,contact};
+  if(!description){S.bugReportError='請填寫問題描述';render();return;}
+  S.bugReportSubmitting=true;S.bugReportError='';render();
+  try{
+    const res=await fetch('/api/bug-reports',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({description,page,contact}),
+    });
+    const data=await res.json();
+    if(!res.ok){S.bugReportSubmitting=false;S.bugReportError=data.error||'送出失敗，請稍後再試';render();return;}
+    S.bugReportSubmitting=false;
+    S.bugReportStep='done';
+    render();
+  }catch(e){
+    S.bugReportSubmitting=false;
+    S.bugReportError='網路錯誤，請稍後再試';
+    render();
+  }
+}
 
 /* Login */
 function openLogin(){S.loginOpen=true;S.loginError='';document.body.style.overflow='hidden';render()}
