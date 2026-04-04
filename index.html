@@ -260,8 +260,8 @@ async function loadAccountsFromAPI() {
       isNew:       acc.isNew      || false,
       sold:        acc.sold       || false,
       views:       acc.views      || 0,
-      coverImage:  acc.imgNAME ? `/acc_img/${acc.imgNAME}` : 'https://placehold.co/800x600/0d0d26/ffd700?text=AOV',
-      images:      acc.imgNAME ? [`/acc_img/${acc.imgNAME}`] : [],
+      coverImage:  (acc.imgNAMEs?.length ? acc.imgNAMEs[0] : acc.imgNAME) ? `/acc_img/${acc.imgNAMEs?.length ? acc.imgNAMEs[0] : acc.imgNAME}` : 'https://placehold.co/800x600/0d0d26/ffd700?text=AOV',
+      images:      acc.imgNAMEs?.length ? acc.imgNAMEs.map(n => `/acc_img/${n}`) : (acc.imgNAME ? [`/acc_img/${acc.imgNAME}`] : []),
       contact:     {},
       tags:        [],
     }));
@@ -301,6 +301,8 @@ const S = {
   designStep: 'form',   // 'form' | 'done'
   designError: '',
   designSubmitting: false,
+  designConfirmOpen: false,
+  _dsFormData: { gameAccount:'', gamePassword:'', bindType:'', contact:'', note:'' },
   // admin
   adminTab:'listings',  // 'listings'
   formOpen:false,       // add / edit modal
@@ -362,7 +364,8 @@ function render(){
     (S.loginOpen             ? renderLoginModal()    : '')+
     (S.lightboxOpen          ? renderLightbox()      : '')+
     (S.formOpen              ? renderFormModal()     : '')+
-    (S.deleteConfirmId!==null? renderDeleteConfirm() : '');
+    (S.deleteConfirmId!==null? renderDeleteConfirm() : '')+
+    (S.designConfirmOpen     ? renderDesignConfirmModal() : '');
   attachEvents();
 }
 
@@ -854,12 +857,12 @@ function renderDesignModal(){
 
       <div class="form-group">
         <label class="form-label">遊戲帳號 <span style="color:#f87171">*</span></label>
-        <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號"/>
+        <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號" value="${esc(S._dsFormData.gameAccount)}"/>
       </div>
       <div class="form-group">
         <label class="form-label">遊戲密碼 <span style="color:#f87171">*</span></label>
         <div style="position:relative">
-          <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem"/>
+          <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem" value="${esc(S._dsFormData.gamePassword)}"/>
           <button type="button" onclick="togglePwVis()" style="position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.82rem" id="pwToggleBtn">👁</button>
         </div>
         <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">🔒 資料加密傳輸，製圖完成後立即刪除</div>
@@ -867,21 +870,20 @@ function renderDesignModal(){
       <div class="form-group">
         <label class="form-label">綁定方式 <span style="color:#f87171">*</span></label>
         <select id="dsBindType" class="inp" style="cursor:pointer">
-          <option value="">請選擇綁定方式</option>
-          <option value="facebook">Facebook</option>
-          <option value="google">Google</option>
-          <option value="phone">手機號碼</option>
-          <option value="email">電子信箱</option>
-          <option value="none">未綁定</option>
+          <option value="" ${!S._dsFormData.bindType?'selected':''}>請選擇綁定方式</option>
+          <option value="Garena" ${S._dsFormData.bindType==='Garena'?'selected':''}>Garena</option>
+          <option value="Google" ${S._dsFormData.bindType==='Google'?'selected':''}>Google</option>
+          <option value="Facebook" ${S._dsFormData.bindType==='Facebook'?'selected':''}>Facebook</option>
         </select>
+        <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">⚠️ 僅接受 Garena / Google / Facebook 綁定</div>
       </div>
       <div class="form-group">
         <label class="form-label">聯繫方式 <span style="color:#f87171">*</span></label>
-        <input id="dsContact" type="text" class="inp" placeholder="FB / IG …"/>
+        <input id="dsContact" type="text" class="inp" placeholder="FB / IG …" value="${esc(S._dsFormData.contact)}"/>
       </div>
       <div class="form-group">
         <label class="form-label">備註</label>
-        <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:60px"></textarea>
+        <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:60px">${esc(S._dsFormData.note)}</textarea>
       </div>
 
       <button onclick="submitDesign()" ${S.designSubmitting?'disabled':''} style="width:100%;padding:.65rem;border-radius:.7rem;font-weight:900;font-size:.92rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;opacity:${S.designSubmitting?'.6':'1'}">
@@ -929,12 +931,12 @@ function renderDesignPage(){
 
     <div class="form-group">
       <label class="form-label">遊戲帳號 <span style="color:#f87171">*</span></label>
-      <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號"/>
+      <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號" value="${esc(S._dsFormData.gameAccount)}"/>
     </div>
     <div class="form-group">
       <label class="form-label">遊戲密碼 <span style="color:#f87171">*</span></label>
       <div style="position:relative">
-        <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem"/>
+        <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem" value="${esc(S._dsFormData.gamePassword)}"/>
         <button type="button" onclick="togglePwVis()" style="position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.82rem" id="pwToggleBtn">👁</button>
       </div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">🔒 資料加密傳輸，製圖完成後立即刪除</div>
@@ -942,13 +944,12 @@ function renderDesignPage(){
     <div class="form-group">
       <label class="form-label">綁定方式 <span style="color:#f87171">*</span></label>
       <select id="dsBindType" class="inp" style="cursor:pointer">
-        <option value="">請選擇綁定方式</option>
-        <option value="facebook">Facebook</option>
-        <option value="google">Google</option>
-        <option value="phone">手機號碼</option>
-        <option value="email">電子信箱</option>
-        <option value="none">未綁定</option>
+        <option value="" ${!S._dsFormData.bindType?'selected':''}>請選擇綁定方式</option>
+        <option value="Garena" ${S._dsFormData.bindType==='Garena'?'selected':''}>Garena</option>
+        <option value="Google" ${S._dsFormData.bindType==='Google'?'selected':''}>Google</option>
+        <option value="Facebook" ${S._dsFormData.bindType==='Facebook'?'selected':''}>Facebook</option>
       </select>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">⚠️ 僅接受 Garena / Google / Facebook 綁定</div>
     </div>
     <div class="form-group">
       <label class="form-label">目前綁定截圖 <span style="color:rgba(255,255,255,.35);font-size:.72rem;font-weight:400">（選填）</span></label>
@@ -969,11 +970,11 @@ function renderDesignPage(){
     </div>
     <div class="form-group">
       <label class="form-label">聯繫方式 <span style="color:#f87171">*</span></label>
-      <input id="dsContact" type="text" class="inp" placeholder="FB / IG …"/>
+      <input id="dsContact" type="text" class="inp" placeholder="FB / IG …" value="${esc(S._dsFormData.contact)}"/>
     </div>
     <div class="form-group">
       <label class="form-label">備註</label>
-      <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:80px"></textarea>
+      <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:80px">${esc(S._dsFormData.note)}</textarea>
     </div>
 
     <button onclick="submitDesign()" ${S.designSubmitting?'disabled':''} style="width:100%;padding:.72rem;border-radius:.7rem;font-weight:900;font-size:.95rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;opacity:${S.designSubmitting?'.6':'1'};box-shadow:0 0 22px rgba(180,127,255,.28)">
@@ -1056,7 +1057,7 @@ function attachEvents(){
 function goHome(){document.body.style.overflow='';history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
 function goDetail(id){document.body.style.overflow='';history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;render();window.scrollTo({top:0,behavior:'instant'});}
 function goAdmin(){document.body.style.overflow='';history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
-function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render()}
+function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;S.designConfirmOpen=false;S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render()}
 
 /* List */
 function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
@@ -1115,12 +1116,21 @@ function handleBindImgChange(input){
   reader.readAsDataURL(file);
 }
 
-async function submitDesign(){
+function submitDesign(){
   const g=id=>document.getElementById(id)?.value?.trim()||'';
   const gameAccount=g('dsGameAcc'),gamePassword=g('dsGamePw'),contact=g('dsContact'),note=g('dsNote');
   const bindType=document.getElementById('dsBindType')?.value||'';
+  // Save form state before any render so values survive re-render
+  S._dsFormData={gameAccount,gamePassword,bindType,contact,note};
   if(!gameAccount||!gamePassword||!bindType||!contact){S.designError='請填寫所有必填欄位';render();return}
-  S.designSubmitting=true;S.designError='';render();
+  S.designError='';
+  S.designConfirmOpen=true;
+  render();
+}
+
+async function doSubmitDesign(){
+  const {gameAccount,gamePassword,bindType,contact,note}=S._dsFormData;
+  S.designSubmitting=true;S.designConfirmOpen=false;render();
   try{
     let body,headers={};
     if(_dsBindImg){
@@ -1134,11 +1144,48 @@ async function submitDesign(){
       body=JSON.stringify({type:'design',gameAccount,gamePassword,bindType,contact,note});
     }
     const res=await fetch('/api/submissions',{method:'POST',headers,body});
-    if(res.ok){S.designStep='done';_dsBindImg=null;}
+    if(res.ok){S.designStep='done';S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;}
     else{const d=await res.json().catch(()=>({}));S.designError=d.error||'送出失敗，請稍後再試';}
   }catch(e){S.designError='連線失敗，請稍後再試';}
   S.designSubmitting=false;render();
 }
+
+function renderDesignConfirmModal(){
+  return`
+  <div class="modal-backdrop" onclick="closeDesignConfirm()">
+    <div class="modal-box glass" style="width:100%;max-width:420px;padding:1.5rem;border-color:rgba(180,127,255,.35)" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <h3 style="font-weight:900;font-size:1rem;color:#B47FFF">📋 送出前請確認</h3>
+        <button onclick="closeDesignConfirm()" style="font-size:1.5rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;line-height:1">&times;</button>
+      </div>
+      <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:.7rem;padding:.85rem .95rem;margin-bottom:1rem;font-size:.82rem;line-height:1.7;color:rgba(255,255,255,.75)">
+        <div style="font-weight:700;color:#f87171;margin-bottom:.5rem">⚠️ 重要提醒</div>
+        <div>• 帳號綁定方式僅接受 <strong style="color:#FFD700">Garena / Google / Facebook</strong>，其他綁定恕不接受</div>
+        <div style="margin-top:.3rem">• 請務必 <strong style="color:#FFD700">關閉雙重驗證</strong>，否則無法登入進行製圖</div>
+        <div style="margin-top:.3rem">• 送出後請 <strong style="color:#FFD700">主動聯繫我們並告知單號</strong>，確認後才會開始製圖</div>
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:.55rem;cursor:pointer;margin-bottom:1.1rem;font-size:.84rem;color:rgba(255,255,255,.7);line-height:1.55">
+        <input type="checkbox" id="dsConfirmChk" onchange="toggleDsConfirmBtn()" style="margin-top:.2rem;width:1rem;height:1rem;cursor:pointer;accent-color:#B47FFF;flex-shrink:0"/>
+        我已閱讀以上說明，確認已關閉雙重驗證，且了解需聯繫告知單號後才會製圖
+      </label>
+      <div style="display:flex;gap:.6rem">
+        <button onclick="closeDesignConfirm()" style="flex:1;padding:.65rem;border-radius:.7rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);cursor:pointer;font-size:.88rem">取消</button>
+        <button id="dsConfirmSubmitBtn" onclick="doSubmitDesign()" disabled style="flex:1;padding:.65rem;border-radius:.7rem;font-weight:900;font-size:.88rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:default;opacity:.4">確認送出</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleDsConfirmBtn(){
+  const btn=document.getElementById('dsConfirmSubmitBtn');
+  const chk=document.getElementById('dsConfirmChk');
+  if(!btn||!chk)return;
+  btn.disabled=!chk.checked;
+  btn.style.opacity=chk.checked?'1':'.4';
+  btn.style.cursor=chk.checked?'pointer':'default';
+}
+
+function closeDesignConfirm(){S.designConfirmOpen=false;render();}
 
 /* Login */
 function openLogin(){S.loginOpen=true;S.loginError='';document.body.style.overflow='hidden';render()}

@@ -148,23 +148,20 @@
 
       <!-- Image upload -->
       <div style="margin-bottom:1.1rem">
-        <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">封面圖片</label>
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fImage').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-          <input type="file" id="fImage" accept="image/jpeg,image/png,image/gif,image/webp" onchange="onFileSelect(event)"/>
+        <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">圖片（可一次選多張）</label>
+        <!-- Thumbnail strip -->
+        <div id="imgThumbList" style="display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:.45rem"></div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fImages').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+          <input type="file" id="fImages" accept="image/jpeg,image/png,image/gif,image/webp" multiple onchange="onFileSelect(event)"/>
           <div id="uploadPrompt">
             <svg width="32" height="32" fill="none" stroke="rgba(255,215,0,.5)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto .6rem"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-            <div style="font-size:.82rem;color:rgba(255,255,255,.45)">點擊或拖曳圖片至此</div>
-            <div style="font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.3rem">支援 JPG、PNG、GIF、WebP，最大 10MB</div>
-          </div>
-          <div id="uploadPreview" style="display:none">
-            <img id="previewImg" style="max-height:160px;border-radius:.5rem;margin:0 auto;display:block"/>
-            <div id="previewName" style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.5rem"></div>
-            <button type="button" onclick="clearImage(event)" style="margin-top:.5rem;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:.4rem;padding:.2rem .65rem;cursor:pointer;font-size:.72rem">移除圖片</button>
+            <div style="font-size:.82rem;color:rgba(255,255,255,.45)">點擊或拖曳圖片至此（可多選）</div>
+            <div style="font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.3rem">支援 JPG、PNG、GIF、WebP，每張最大 10MB，最多 10 張</div>
           </div>
         </div>
-        <!-- Current image hint (edit mode) -->
+        <!-- Current images hint (edit mode) -->
         <div id="currentImgHint" style="display:none;margin-top:.45rem;font-size:.72rem;color:rgba(255,255,255,.35)">
-          目前圖片：<span id="currentImgName" style="color:rgba(255,215,0,.6)"></span>（不上傳則保留原圖）
+          目前已有 <span id="currentImgCount" style="color:rgba(255,215,0,.6)">0</span> 張圖片（上傳新圖片將取代所有舊圖）
         </div>
       </div>
 
@@ -223,6 +220,7 @@ let editId      = null;   // null = add mode, number = edit mode
 let deleteId    = null;
 let searchQuery = '';
 let currentPage = 1;
+let selectedFiles = [];   // new image files queued for upload
 
 /* ══ MAINTENANCE ══ */
 let maintOn = false;
@@ -418,8 +416,10 @@ function openEditModal(id) {
   document.getElementById('submitText').textContent  = '儲存變更';
   document.getElementById('fPrice').value = acc.price;
 
-  if (acc.imgNAME) {
-    document.getElementById('currentImgName').textContent  = acc.imgNAME;
+  const existingImgs = Array.isArray(acc.imgNAMEs) && acc.imgNAMEs.length
+    ? acc.imgNAMEs : (acc.imgNAME ? [acc.imgNAME] : []);
+  if (existingImgs.length > 0) {
+    document.getElementById('currentImgCount').textContent = existingImgs.length;
     document.getElementById('currentImgHint').style.display = 'block';
   } else {
     document.getElementById('currentImgHint').style.display = 'none';
@@ -440,40 +440,45 @@ function onBackdropClick(e) { if (e.target === e.currentTarget) closeModal(); }
    IMAGE UPLOAD HANDLERS
 ══════════════════════════════════════════════════════ */
 function onFileSelect(e) {
-  const file = e.target.files[0];
-  if (file) showPreview(file);
+  addFiles(Array.from(e.target.files));
+  e.target.value = ''; // reset so same file can be re-added
 }
 function onDragOver(e)  { e.preventDefault(); document.getElementById('uploadZone').classList.add('dragover'); }
 function onDragLeave(e) { document.getElementById('uploadZone').classList.remove('dragover'); }
 function onDrop(e) {
   e.preventDefault();
   document.getElementById('uploadZone').classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (file && /^image\//i.test(file.type)) {
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    document.getElementById('fImage').files = dt.files;
-    showPreview(file);
+  const files = Array.from(e.dataTransfer.files).filter(f => /^image\//i.test(f.type));
+  if (files.length) addFiles(files);
+}
+function addFiles(files) {
+  for (const f of files) {
+    if (selectedFiles.length >= 10) break;
+    selectedFiles.push(f);
   }
+  renderThumbs();
 }
-function showPreview(file) {
-  const reader = new FileReader();
-  reader.onload = ev => {
-    document.getElementById('previewImg').src = ev.target.result;
-    document.getElementById('previewName').textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
-    document.getElementById('uploadPrompt').style.display  = 'none';
-    document.getElementById('uploadPreview').style.display = 'block';
-  };
-  reader.readAsDataURL(file);
+function removeFile(idx) {
+  selectedFiles.splice(idx, 1);
+  renderThumbs();
 }
-function clearImage(e) {
-  if (e) e.stopPropagation();
-  clearImageState();
+function renderThumbs() {
+  const list = document.getElementById('imgThumbList');
+  if (!list) return;
+  list.innerHTML = selectedFiles.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return `<div style="position:relative;display:inline-block;vertical-align:top">
+      <img src="${url}" style="width:72px;height:54px;object-fit:cover;border-radius:.4rem;border:1px solid rgba(255,215,0,.3);display:block"/>
+      <button type="button" onclick="removeFile(${i})" style="position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:#f87171;border:none;cursor:pointer;font-size:9px;color:#fff;line-height:17px;text-align:center;font-weight:900;padding:0">✕</button>
+      <div style="font-size:.6rem;color:rgba(255,255,255,.3);width:72px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:.15rem">${escH(f.name)}</div>
+    </div>`;
+  }).join('');
 }
 function clearImageState() {
-  document.getElementById('fImage').value = '';
-  document.getElementById('uploadPrompt').style.display  = 'block';
-  document.getElementById('uploadPreview').style.display = 'none';
+  selectedFiles = [];
+  const inp = document.getElementById('fImages');
+  if (inp) inp.value = '';
+  renderThumbs();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -484,14 +489,13 @@ async function handleSubmit(e) {
   clearError();
 
   const price = document.getElementById('fPrice').value.trim();
-  const file  = document.getElementById('fImage').files[0];
 
   if (!price || Number(price) <= 0) { showError('請填寫有效售價'); return; }
 
   setLoading(true);
   const fd = new FormData();
   fd.append('price', price);
-  if (file) fd.append('image', file);
+  for (const f of selectedFiles) fd.append('images', f);
 
   try {
     let res;
@@ -688,6 +692,10 @@ function renderOrders() {
             <span id="pw_${o.id}" style="font-size:.85rem;font-weight:700;color:#FFD700;letter-spacing:.12em;word-break:break-all">••••••••</span>
             <button onclick="togglePw(${o.id},'${escH(o.gamePassword)}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.8rem;padding:.1rem .3rem" title="顯示/隱藏密碼">👁</button>
           </div>
+        </div>
+        <div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.2rem">綁定方式</div>
+          <div style="font-size:.85rem;font-weight:700;color:#B47FFF;word-break:break-all">${escH(o.bindType||'—')}</div>
         </div>
         <div>
           <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:.2rem">聯繫方式</div>

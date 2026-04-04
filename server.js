@@ -102,9 +102,13 @@ function nextImgId() {
   try {
     const accounts = readAccounts();
     for (const acc of accounts) {
-      const base = acc.imgNAME ? path.parse(acc.imgNAME).name : '';
-      const n = parseInt(base, 10);
-      if (!isNaN(n) && n > counter) counter = n;
+      const names = Array.isArray(acc.imgNAMEs) && acc.imgNAMEs.length
+        ? acc.imgNAMEs : (acc.imgNAME ? [acc.imgNAME] : []);
+      for (const name of names) {
+        const base = path.parse(name).name;
+        const n = parseInt(base, 10);
+        if (!isNaN(n) && n > counter) counter = n;
+      }
     }
   } catch {}
   counter++;
@@ -183,37 +187,41 @@ app.get('/api/accounts', (req, res) => {
   res.json(readAccounts());
 });
 
-/* POST /api/accounts  — add new account (with optional image) */
-app.post('/api/accounts', requireAuth, upload.single('image'), (req, res) => {
+/* POST /api/accounts  — add new account (with optional images) */
+app.post('/api/accounts', requireAuth, upload.array('images', 10), (req, res) => {
   const accounts = readAccounts();
   const { price } = req.body;
+  const files = req.files || [];
 
   if (!price) {
-    if (req.file) fs.unlinkSync(req.file.path);
+    files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     return res.status(400).json({ error: '價格為必填' });
   }
 
   // Validate actual file content (magic bytes), not just extension
-  if (req.file && !isAllowedImageMime(req.file.path)) {
-    fs.unlinkSync(req.file.path);
-    return res.status(400).json({ error: '不允許的圖片格式' });
+  for (const f of files) {
+    if (!isAllowedImageMime(f.path)) {
+      files.forEach(ff => { try { fs.unlinkSync(ff.path); } catch {} });
+      return res.status(400).json({ error: '不允許的圖片格式' });
+    }
   }
 
   const newId = accounts.length ? Math.max(...accounts.map(a => a.id)) + 1 : 1;
-  let imgNAME = '';
+  const imgNAMEs = [];
 
-  if (req.file) {
-    const imgId  = nextImgId();
-    const ext    = path.extname(req.file.originalname).toLowerCase();
-    imgNAME      = imgId + ext;
-    const dest   = path.join(IMG_DIR, imgNAME);
-    fs.renameSync(req.file.path, dest);
+  for (const f of files) {
+    const imgId = nextImgId();
+    const ext   = path.extname(f.originalname).toLowerCase();
+    const name  = imgId + ext;
+    fs.renameSync(f.path, path.join(IMG_DIR, name));
+    imgNAMEs.push(name);
   }
 
   const newAccount = {
-    id:      newId,
-    price:   Number(price),
-    imgNAME: imgNAME,
+    id:       newId,
+    price:    Number(price),
+    imgNAME:  imgNAMEs[0] || '',
+    imgNAMEs,
   };
 
   accounts.push(newAccount);
@@ -222,46 +230,55 @@ app.post('/api/accounts', requireAuth, upload.single('image'), (req, res) => {
 });
 
 /* PUT /api/accounts/:id  — edit existing account */
-app.put('/api/accounts/:id', requireAuth, upload.single('image'), (req, res) => {
+app.put('/api/accounts/:id', requireAuth, upload.array('images', 10), (req, res) => {
   const accounts = readAccounts();
   const id = parseInt(req.params.id, 10);
   const idx = accounts.findIndex(a => a.id === id);
+  const files = req.files || [];
 
   if (idx === -1) {
-    if (req.file) fs.unlinkSync(req.file.path);
+    files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     return res.status(404).json({ error: '帳號不存在' });
   }
 
   const { price } = req.body;
   if (!price) {
-    if (req.file) fs.unlinkSync(req.file.path);
+    files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     return res.status(400).json({ error: '價格為必填' });
   }
 
   // Validate actual file content (magic bytes), not just extension
-  if (req.file && !isAllowedImageMime(req.file.path)) {
-    fs.unlinkSync(req.file.path);
-    return res.status(400).json({ error: '不允許的圖片格式' });
+  for (const f of files) {
+    if (!isAllowedImageMime(f.path)) {
+      files.forEach(ff => { try { fs.unlinkSync(ff.path); } catch {} });
+      return res.status(400).json({ error: '不允許的圖片格式' });
+    }
   }
 
-  let imgNAME = accounts[idx].imgNAME;
+  let imgNAMEs = Array.isArray(accounts[idx].imgNAMEs) && accounts[idx].imgNAMEs.length
+    ? accounts[idx].imgNAMEs
+    : (accounts[idx].imgNAME ? [accounts[idx].imgNAME] : []);
 
-  if (req.file) {
-    // Delete old image if it was a generated one (8-digit name)
-    if (imgNAME) {
-      const base = path.parse(imgNAME).name;
+  if (files.length > 0) {
+    // Delete old images
+    for (const oldName of imgNAMEs) {
+      const base = path.parse(oldName).name;
       if (/^\d{8}$/.test(base)) {
-        const oldPath = path.join(IMG_DIR, imgNAME);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        const oldPath = path.join(IMG_DIR, oldName);
+        try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch {}
       }
     }
-    const imgId = nextImgId();
-    const ext   = path.extname(req.file.originalname).toLowerCase();
-    imgNAME     = imgId + ext;
-    fs.renameSync(req.file.path, path.join(IMG_DIR, imgNAME));
+    imgNAMEs = [];
+    for (const f of files) {
+      const imgId = nextImgId();
+      const ext   = path.extname(f.originalname).toLowerCase();
+      const name  = imgId + ext;
+      fs.renameSync(f.path, path.join(IMG_DIR, name));
+      imgNAMEs.push(name);
+    }
   }
 
-  accounts[idx] = { ...accounts[idx], price: Number(price), imgNAME };
+  accounts[idx] = { ...accounts[idx], price: Number(price), imgNAME: imgNAMEs[0] || '', imgNAMEs };
   writeAccounts(accounts);
   res.json(accounts[idx]);
 });
@@ -269,13 +286,13 @@ app.put('/api/accounts/:id', requireAuth, upload.single('image'), (req, res) => 
 /* DELETE /api/accounts  — delete all accounts at once */
 app.delete('/api/accounts', requireAuth, (req, res) => {
   const accounts = readAccounts();
-  // Delete all generated images
   for (const acc of accounts) {
-    if (acc.imgNAME) {
-      const base = path.parse(acc.imgNAME).name;
+    const names = Array.isArray(acc.imgNAMEs) && acc.imgNAMEs.length
+      ? acc.imgNAMEs : (acc.imgNAME ? [acc.imgNAME] : []);
+    for (const name of names) {
+      const base = path.parse(name).name;
       if (/^\d{8}$/.test(base)) {
-        const imgPath = path.join(IMG_DIR, acc.imgNAME);
-        try { if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath); } catch {}
+        try { if (fs.existsSync(path.join(IMG_DIR, name))) fs.unlinkSync(path.join(IMG_DIR, name)); } catch {}
       }
     }
   }
@@ -291,12 +308,12 @@ app.delete('/api/accounts/:id', requireAuth, (req, res) => {
 
   if (idx === -1) return res.status(404).json({ error: '帳號不存在' });
 
-  const imgNAME = accounts[idx].imgNAME;
-  if (imgNAME) {
-    const base = path.parse(imgNAME).name;
+  const names = Array.isArray(accounts[idx].imgNAMEs) && accounts[idx].imgNAMEs.length
+    ? accounts[idx].imgNAMEs : (accounts[idx].imgNAME ? [accounts[idx].imgNAME] : []);
+  for (const name of names) {
+    const base = path.parse(name).name;
     if (/^\d{8}$/.test(base)) {
-      const imgPath = path.join(IMG_DIR, imgNAME);
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+      try { if (fs.existsSync(path.join(IMG_DIR, name))) fs.unlinkSync(path.join(IMG_DIR, name)); } catch {}
     }
   }
 
@@ -326,11 +343,11 @@ function writeSubmissions(data) {
 
 /* POST /api/submissions  — public, customer submits */
 app.post('/api/submissions', (req, res) => {
-  const { type, gameAccount, gamePassword, contact, note } = req.body;
+  const { type, gameAccount, gamePassword, bindType, contact, note } = req.body;
   if (!type || !contact) return res.status(400).json({ error: '缺少必填欄位' });
 
   // Input length limits to prevent oversized payloads
-  const LIMITS = { type: 20, gameAccount: 100, gamePassword: 100, contact: 200, note: 1000 };
+  const LIMITS = { type: 20, gameAccount: 100, gamePassword: 100, bindType: 30, contact: 200, note: 1000 };
   if (String(type).length     > LIMITS.type)        return res.status(400).json({ error: '欄位超過長度限制' });
   if (String(contact).length  > LIMITS.contact)     return res.status(400).json({ error: '欄位超過長度限制' });
   if (note   && String(note).length  > LIMITS.note) return res.status(400).json({ error: '備註超過 1000 字' });
@@ -338,20 +355,24 @@ app.post('/api/submissions', (req, res) => {
   if (type === 'design' && (!gameAccount || !gamePassword)) {
     return res.status(400).json({ error: '製圖服務需填寫遊戲帳號與密碼' });
   }
+  if (type === 'design' && !bindType) {
+    return res.status(400).json({ error: '請選擇綁定方式' });
+  }
   if (gameAccount && String(gameAccount).length > LIMITS.gameAccount) return res.status(400).json({ error: '欄位超過長度限制' });
   if (gamePassword && String(gamePassword).length > LIMITS.gamePassword) return res.status(400).json({ error: '欄位超過長度限制' });
 
   const subs = readSubmissions();
   const newId = subs.length ? Math.max(...subs.map(s => s.id)) + 1 : 1;
   const entry = {
-    id:          newId,
-    type:        String(type).slice(0, LIMITS.type),
-    gameAccount: String(gameAccount || '').slice(0, LIMITS.gameAccount),
+    id:           newId,
+    type:         String(type).slice(0, LIMITS.type),
+    gameAccount:  String(gameAccount || '').slice(0, LIMITS.gameAccount),
     gamePassword: String(gamePassword || '').slice(0, LIMITS.gamePassword),
-    contact:     String(contact).slice(0, LIMITS.contact),
-    note:        String(note || '').slice(0, LIMITS.note),
-    createdAt:   new Date().toISOString(),
-    done:        false,
+    bindType:     String(bindType || '').slice(0, LIMITS.bindType),
+    contact:      String(contact).slice(0, LIMITS.contact),
+    note:         String(note || '').slice(0, LIMITS.note),
+    createdAt:    new Date().toISOString(),
+    done:         false,
   };
   subs.push(entry);
   writeSubmissions(subs);
