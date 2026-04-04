@@ -153,8 +153,15 @@ const upload = multer({
 
 /* ── Helper: read / write maintenance.json ── */
 function readMaintenance() {
-  try { return JSON.parse(fs.readFileSync(MAINTENANCE_FILE, 'utf8')); }
-  catch(e) { return { on: false }; }
+  try {
+    const m = JSON.parse(fs.readFileSync(MAINTENANCE_FILE, 'utf8'));
+    // Migrate old { on: bool } format → new per-service format
+    if ('on' in m && !('sellAccount' in m)) {
+      return { sellAccount: m.on, design: m.on, spotAccount: m.on };
+    }
+    return m;
+  }
+  catch(e) { return { sellAccount: false, design: false, spotAccount: false }; }
 }
 function writeMaintenance(data) {
   fs.writeFileSync(MAINTENANCE_FILE, JSON.stringify(data), 'utf8');
@@ -174,12 +181,17 @@ app.get('/api/maintenance', (req, res) => {
   res.json(readMaintenance());
 });
 
-/* POST /api/maintenance — auth required */
+/* POST /api/maintenance — auth required; body: { key: 'sellAccount'|'design'|'spotAccount' } */
 app.post('/api/maintenance', requireAuth, (req, res) => {
+  const { key } = req.body;
+  const validKeys = ['sellAccount', 'design', 'spotAccount'];
+  if (!key || !validKeys.includes(key)) {
+    return res.status(400).json({ error: '無效的維護項目' });
+  }
   const current = readMaintenance();
-  const next = { on: !current.on };
-  writeMaintenance(next);
-  res.json(next);
+  current[key] = !current[key];
+  writeMaintenance(current);
+  res.json(current);
 });
 
 /* GET /api/accounts */
@@ -222,6 +234,7 @@ app.post('/api/accounts', requireAuth, upload.array('images', 10), (req, res) =>
     price:    Number(price),
     imgNAME:  imgNAMEs[0] || '',
     imgNAMEs,
+    views:    0,
   };
 
   accounts.push(newAccount);
@@ -320,6 +333,17 @@ app.delete('/api/accounts/:id', requireAuth, (req, res) => {
   accounts.splice(idx, 1);
   writeAccounts(accounts);
   res.json({ ok: true });
+});
+
+/* POST /api/accounts/:id/view — public, increment view counter */
+app.post('/api/accounts/:id/view', (req, res) => {
+  const accounts = readAccounts();
+  const id  = parseInt(req.params.id, 10);
+  const idx = accounts.findIndex(a => a.id === id);
+  if (idx === -1) return res.status(404).json({ error: '帳號不存在' });
+  accounts[idx].views = (accounts[idx].views || 0) + 1;
+  writeAccounts(accounts);
+  res.json({ views: accounts[idx].views });
 });
 
 /* ── Serve acc_img directory (long cache: images are content-addressed by ID) ── */

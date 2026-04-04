@@ -68,13 +68,38 @@
       </div>
     </a>
     <div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.45)">/ 後台管理</div>
-    <button id="maintBtn" onclick="toggleMaintenance()" class="btn btn-outline" style="font-size:.78rem">⏳ 載入中…</button>
+    <div style="display:flex;gap:.3rem;align-items:center">
+      <span style="font-size:.7rem;color:rgba(255,255,255,.35);margin-right:.1rem">維護:</span>
+      <button id="mBtn_spot"   onclick="toggleMaintenance('spotAccount')" class="btn btn-outline" style="font-size:.72rem;padding:.35rem .6rem">⏳ 現貨</button>
+      <button id="mBtn_sell"   onclick="toggleMaintenance('sellAccount')"  class="btn btn-outline" style="font-size:.72rem;padding:.35rem .6rem">⏳ 賣帳號</button>
+      <button id="mBtn_design" onclick="toggleMaintenance('design')"       class="btn btn-outline" style="font-size:.72rem;padding:.35rem .6rem">⏳ 製圖</button>
+    </div>
     <a href="index.html" class="btn btn-outline" style="text-decoration:none;font-size:.78rem">← 回前台</a>
   </div>
 </nav>
 
 <!-- MAIN -->
 <main style="max-width:1200px;margin:0 auto;padding:1.5rem 1rem 4rem">
+
+  <!-- Stats Overview -->
+  <div id="statsBar" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;margin-bottom:1.1rem">
+    <div class="glass" style="padding:.75rem;text-align:center;border-radius:.8rem">
+      <div style="font-size:.68rem;color:rgba(255,255,255,.38);margin-bottom:.2rem">貼文總數</div>
+      <div class="tg-gold" id="statPosts" style="font-size:1.4rem;font-weight:900">0</div>
+    </div>
+    <div class="glass" style="padding:.75rem;text-align:center;border-radius:.8rem">
+      <div style="font-size:.68rem;color:rgba(255,255,255,.38);margin-bottom:.2rem">總點擊數</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#63B3ED" id="statViews">0</div>
+    </div>
+    <div class="glass" style="padding:.75rem;text-align:center;border-radius:.8rem">
+      <div style="font-size:.68rem;color:rgba(255,255,255,.38);margin-bottom:.2rem">製圖訂單</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#B47FFF" id="statOrders">0</div>
+    </div>
+    <div class="glass" style="padding:.75rem;text-align:center;border-radius:.8rem">
+      <div style="font-size:.68rem;color:rgba(255,255,255,.38);margin-bottom:.2rem">待處理</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#f87171" id="statPending">0</div>
+    </div>
+  </div>
 
   <!-- Tabs -->
   <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:1.25rem">
@@ -228,46 +253,49 @@ let currentPage = 1;
 let selectedFiles = [];   // new image files queued for upload
 
 /* ══ MAINTENANCE ══ */
-let maintOn = false;
+const MAINT_KEYS = { spotAccount: '現貨', sellAccount: '賣帳號', design: '製圖' };
+const MAINT_IDS  = { spotAccount: 'mBtn_spot', sellAccount: 'mBtn_sell', design: 'mBtn_design' };
+let maintState = { spotAccount: false, sellAccount: false, design: false };
 
 async function loadMaintenance() {
   try {
     const r = await fetch('/api/maintenance');
     const d = await r.json();
-    maintOn = d.on;
-    updateMaintBtn();
+    maintState = { spotAccount: d.spotAccount||false, sellAccount: d.sellAccount||false, design: d.design||false };
+    updateMaintBtns();
   } catch(e) {}
 }
 
-function updateMaintBtn() {
-  const btn = document.getElementById('maintBtn');
-  if (!btn) return;
-  if (maintOn) {
-    btn.textContent = '🔴 維護中（點擊關閉）';
-    btn.style.background = 'rgba(239,68,68,.2)';
-    btn.style.borderColor = 'rgba(239,68,68,.5)';
-    btn.style.color = '#f87171';
-  } else {
-    btn.textContent = '🟢 正常（點擊開啟維護）';
-    btn.style.background = 'rgba(34,197,94,.12)';
-    btn.style.borderColor = 'rgba(34,197,94,.35)';
-    btn.style.color = '#4ade80';
+function updateMaintBtns() {
+  for (const [key, label] of Object.entries(MAINT_KEYS)) {
+    const btn = document.getElementById(MAINT_IDS[key]);
+    if (!btn) continue;
+    const on = maintState[key];
+    btn.textContent = on ? `🔴 ${label}` : `🟢 ${label}`;
+    btn.style.background   = on ? 'rgba(239,68,68,.2)' : 'rgba(34,197,94,.08)';
+    btn.style.borderColor  = on ? 'rgba(239,68,68,.5)' : 'rgba(34,197,94,.3)';
+    btn.style.color        = on ? '#f87171' : '#4ade80';
   }
 }
 
-async function toggleMaintenance() {
-  const btn = document.getElementById('maintBtn');
-  btn.disabled = true;
+async function toggleMaintenance(key) {
+  const btn = document.getElementById(MAINT_IDS[key]);
+  if (btn) btn.disabled = true;
   try {
-    const r = await fetch('/api/maintenance', { method: 'POST' });
+    const r = await fetch('/api/maintenance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    });
     const d = await r.json();
-    maintOn = d.on;
-    updateMaintBtn();
-    showToast(maintOn ? '🔴 維護模式已開啟' : '🟢 維護模式已關閉', maintOn ? 'error' : 'success');
+    maintState = { spotAccount: d.spotAccount||false, sellAccount: d.sellAccount||false, design: d.design||false };
+    updateMaintBtns();
+    const on = maintState[key];
+    showToast(`${on ? '🔴' : '🟢'} ${MAINT_KEYS[key]} 維護${on ? '已開啟' : '已關閉'}`, on ? 'error' : 'success');
   } catch(e) {
     showToast('❌ 操作失敗', 'error');
   }
-  btn.disabled = false;
+  if (btn) btn.disabled = false;
 }
 const PER_PAGE  = 30;
 
@@ -304,6 +332,15 @@ function getFiltered() {
   );
 }
 
+function updateStatsBar() {
+  const totalViews = accounts.reduce((s, a) => s + (a.views || 0), 0);
+  const el = id => document.getElementById(id);
+  if (el('statPosts'))   el('statPosts').textContent  = accounts.length;
+  if (el('statViews'))   el('statViews').textContent  = totalViews.toLocaleString('zh-TW');
+  if (el('statOrders'))  el('statOrders').textContent = orders.length;
+  if (el('statPending')) el('statPending').textContent = orders.filter(o => !o.done).length;
+}
+
 function renderGrid() {
   const list  = document.getElementById('postsList');
   const pg    = document.getElementById('pagination');
@@ -311,6 +348,7 @@ function renderGrid() {
 
   const filtered = getFiltered();
   document.getElementById('totalCount').textContent = accounts.length;
+  updateStatsBar();
 
   if (filtered.length === 0) {
     list.innerHTML  = '';
@@ -329,10 +367,11 @@ function renderGrid() {
   list.innerHTML = `
     <div style="background:#0D0D26;border:1px solid rgba(255,255,255,.08);border-radius:.9rem;overflow:hidden">
       <!-- Table header -->
-      <div style="display:grid;grid-template-columns:3rem 4.5rem auto auto 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.07);text-transform:uppercase;letter-spacing:.04em">
+      <div style="display:grid;grid-template-columns:3rem 4.5rem auto 4rem 4rem 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.07);text-transform:uppercase;letter-spacing:.04em">
         <span>ID</span>
         <span>圖片</span>
         <span>售價</span>
+        <span style="text-align:center">點擊</span>
         <span style="text-align:center">圖檔</span>
         <span style="text-align:center">操作</span>
       </div>
@@ -342,10 +381,11 @@ function renderGrid() {
           : 'https://placehold.co/120x90/0d0d26/555?text=No+Img';
         const rowBg = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.018)';
         return `
-        <div style="display:grid;grid-template-columns:3rem 4.5rem auto auto 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s" onmouseover="this.style.background='rgba(255,215,0,.04)'" onmouseout="this.style.background='${rowBg}'">
+        <div style="display:grid;grid-template-columns:3rem 4.5rem auto 4rem 4rem 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s" onmouseover="this.style.background='rgba(255,215,0,.04)'" onmouseout="this.style.background='${rowBg}'">
           <span style="font-size:.72rem;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums">${acc.id}</span>
           <img src="${escH(imgSrc)}" style="width:4.5rem;height:3.2rem;object-fit:cover;border-radius:.4rem;border:1px solid rgba(255,255,255,.08);display:block" onerror="this.src='https://placehold.co/120x90/0d0d26/555?text=No+Img'"/>
           <div style="font-size:.88rem;font-weight:900;color:#FFD700;white-space:nowrap">NT$&nbsp;${Number(acc.price).toLocaleString('zh-TW')}</div>
+          <div style="text-align:center;font-size:.78rem;font-weight:700;color:#63B3ED;font-variant-numeric:tabular-nums">${(acc.views||0).toLocaleString('zh-TW')}</div>
           <div style="text-align:center;font-size:.7rem;color:${acc.imgNAME ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.15)'}">
             ${acc.imgNAME ? `<span title="${escH(acc.imgNAME)}">🖼</span>` : '—'}
           </div>
@@ -660,6 +700,7 @@ function renderOrders() {
 
   document.getElementById('orderCount').textContent   = orders.length;
   document.getElementById('orderPending').textContent = pending;
+  updateStatsBar();
   const badge = document.getElementById('orderBadge');
   if (pending > 0) { badge.style.display = 'inline'; badge.textContent = pending; }
   else { badge.style.display = 'none'; }
