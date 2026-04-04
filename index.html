@@ -1278,7 +1278,7 @@ function renderBugReportModal(){
       </div>
       <div style="margin-bottom:1rem">
         <label class="form-label">您的聯繫方式（選填，方便我們回覆）</label>
-        <input class="inp" id="bugContact" type="text" placeholder="LINE ID / Discord / Email…" value="${esc(S._bugFormData?.contact||'')}"/>
+        <input class="inp" id="bugContact" type="text" placeholder="MSG / DC / Email…" value="${esc(S._bugFormData?.contact||'')}"/>
       </div>
       ${S.bugReportError?`<div style="color:#f87171;font-size:.78rem;margin-bottom:.75rem;padding:.5rem .8rem;background:rgba(239,68,68,.1);border-radius:.5rem;border:1px solid rgba(239,68,68,.25)">${esc(S.bugReportError)}</div>`:''}
       <div style="display:flex;gap:.6rem;justify-content:flex-end">
