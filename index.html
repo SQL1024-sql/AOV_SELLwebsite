@@ -1108,11 +1108,16 @@ function attachEvents(){
   };
 }
 
+/* ── Analytics ── */
+function trackEvent(type, extra){
+  fetch('/api/analytics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,extra:extra||{}})}).catch(()=>{});
+}
+
 /* Navigation */
 function goHome(){document.body.style.overflow='';history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
-function goDetail(id){document.body.style.overflow='';history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;render();window.scrollTo({top:0,behavior:'instant'});fetch(`/api/accounts/${id}/view`,{method:'POST'}).catch(()=>{});}
+function goDetail(id){document.body.style.overflow='';history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;render();window.scrollTo({top:0,behavior:'instant'});fetch(`/api/accounts/${id}/view`,{method:'POST'}).catch(()=>{});trackEvent('account_view',{id});}
 function goAdmin(){document.body.style.overflow='';history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
-function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;S.designConfirmOpen=false;S.designOrderNo='';S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render();}
+function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;S.designConfirmOpen=false;S.designOrderNo='';S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render();trackEvent('design_click');}
 
 /* List */
 function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
@@ -1137,7 +1142,7 @@ function navImg(dir){
 }
 
 /* Contact */
-function openContactModal(id){S.contactOpen=id;S.copied=false;document.body.style.overflow='hidden';render()}
+function openContactModal(id){S.contactOpen=id;S.copied=false;document.body.style.overflow='hidden';render();trackEvent('contact_click',{accountId:id||null});}
 function closeContact(){S.contactOpen=false;document.body.style.overflow='';render()}
 function copyContact(text){
   const done=()=>{S.copied=true;render();setTimeout(()=>{S.copied=false;render();},2500)};
@@ -1148,7 +1153,8 @@ function copyContact(text){
 function openServiceModal(type){
   if(type==='buy'   && S.maintenance.sellAccount){ S.serviceModal='maint_sell';   document.body.style.overflow='hidden';render();return; }
   if(type==='design'&& S.maintenance.design){      S.serviceModal='maint_design'; document.body.style.overflow='hidden';render();return; }
-  S.serviceModal=type;S.designStep='form';S.designError='';S.designSubmitting=false;document.body.style.overflow='hidden';render()
+  S.serviceModal=type;S.designStep='form';S.designError='';S.designSubmitting=false;document.body.style.overflow='hidden';render();
+  if(type==='buy') trackEvent('sell_click');
 }
 function closeServiceModal(){S.serviceModal=null;S.designStep='form';document.body.style.overflow='';render()}
 function togglePwVis(){

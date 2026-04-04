@@ -106,6 +106,7 @@
     <button id="tabListings" onclick="switchTab('listings')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:#FFD700;border-bottom:2px solid #FFD700;transition:all .18s">📋 貼文管理</button>
     <button id="tabOrders" onclick="switchTab('orders')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">🎨 製圖訂單 <span id="orderBadge" style="display:none;background:#f87171;color:#fff;border-radius:999px;padding:.05rem .45rem;font-size:.68rem;margin-left:.3rem">0</span></button>
     <button id="tabBugs" onclick="switchTab('bugs')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">🐛 Bug 回報 <span id="bugBadge" style="display:none;background:#f87171;color:#fff;border-radius:999px;padding:.05rem .45rem;font-size:.68rem;margin-left:.3rem">0</span></button>
+    <button id="tabStats" onclick="switchTab('stats')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">📊 數據統計</button>
   </div>
 
   <!-- ═══ LISTINGS TAB ═══ -->
@@ -157,6 +158,71 @@
     </div>
   </div>
 
+
+  <!-- ═══ STATS TAB ═══ -->
+  <div id="sectionStats" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+      <div>
+        <h1 style="font-size:1.35rem;font-weight:900">數據統計</h1>
+        <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">點擊行為與時間分佈分析</p>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <select id="statsRange" onchange="applyStatsRange()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.2);color:rgba(255,255,255,.7);font-size:.78rem;border-radius:.55rem;padding:.35rem .65rem;outline:none;cursor:pointer">
+          <option value="7">近 7 天</option>
+          <option value="14" selected>近 14 天</option>
+          <option value="30">近 30 天</option>
+          <option value="0">全部</option>
+        </select>
+        <button class="btn btn-outline" onclick="loadAnalytics()" style="font-size:.78rem">↻ 重新整理</button>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div id="statsCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.65rem;margin-bottom:1.4rem"></div>
+
+    <!-- 14-day trend -->
+    <div class="glass" style="padding:1.1rem 1.2rem;border-radius:.9rem;margin-bottom:1rem">
+      <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.9rem">每日趨勢</div>
+      <div id="chartDaily" style="display:flex;align-items:flex-end;gap:3px;height:120px;overflow-x:auto"></div>
+      <div style="display:flex;gap:1.1rem;margin-top:.6rem;flex-wrap:wrap" id="legendDaily"></div>
+    </div>
+
+    <!-- Hourly + DoW side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1rem">
+      <div class="glass" style="padding:1rem 1.1rem;border-radius:.9rem">
+        <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.85rem">24小時分佈</div>
+        <div id="chartHourly" style="display:flex;align-items:flex-end;gap:2px;height:90px"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:.3rem;font-size:.58rem;color:rgba(255,255,255,.25)">
+          <span>0</span><span>6</span><span>12</span><span>18</span><span>23</span>
+        </div>
+      </div>
+      <div class="glass" style="padding:1rem 1.1rem;border-radius:.9rem">
+        <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.85rem">星期分佈</div>
+        <div id="chartDow" style="display:flex;align-items:flex-end;gap:4px;height:90px"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:.3rem;font-size:.63rem;color:rgba(255,255,255,.3)">
+          <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Type breakdown donut-like bar + top accounts -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1rem">
+      <div class="glass" style="padding:1rem 1.1rem;border-radius:.9rem">
+        <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.85rem">各類型佔比</div>
+        <div id="chartTypeBreakdown"></div>
+      </div>
+      <div class="glass" style="padding:1rem 1.1rem;border-radius:.9rem">
+        <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.85rem">熱門帳號 Top 10</div>
+        <div id="chartTopAccounts"></div>
+      </div>
+    </div>
+
+    <!-- Recent events log -->
+    <div class="glass" style="padding:1rem 1.2rem;border-radius:.9rem">
+      <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.75rem">最近事件紀錄 <span style="font-size:.72rem;font-weight:400;color:rgba(255,255,255,.28)">（最新 100 筆）</span></div>
+      <div id="statsEventLog" style="max-height:320px;overflow-y:auto"></div>
+    </div>
+  </div>
 
   <!-- ═══ BUGS TAB ═══ -->
   <div id="sectionBugs" style="display:none">
@@ -321,7 +387,7 @@ const PER_PAGE  = 30;
    INIT
 ══════════════════════════════════════════════════════ */
 async function init() {
-  await Promise.all([loadAccounts(), loadMaintenance(), loadOrders(), loadBugReports()]);
+  await Promise.all([loadAccounts(), loadMaintenance(), loadOrders(), loadBugReports(), loadAnalytics()]);
   renderGrid();
 }
 
@@ -684,14 +750,17 @@ function switchTab(tab) {
   document.getElementById('sectionListings').style.display = tab === 'listings' ? 'block' : 'none';
   document.getElementById('sectionOrders').style.display   = tab === 'orders'   ? 'block' : 'none';
   document.getElementById('sectionBugs').style.display     = tab === 'bugs'     ? 'block' : 'none';
-  document.getElementById('tabListings').style.color             = tab === 'listings' ? '#FFD700'              : 'rgba(255,255,255,.4)';
-  document.getElementById('tabListings').style.borderBottomColor = tab === 'listings' ? '#FFD700'              : 'transparent';
-  document.getElementById('tabOrders').style.color               = tab === 'orders'   ? '#B47FFF'              : 'rgba(255,255,255,.4)';
-  document.getElementById('tabOrders').style.borderBottomColor   = tab === 'orders'   ? '#B47FFF'              : 'transparent';
-  document.getElementById('tabBugs').style.color                 = tab === 'bugs'     ? '#f87171'              : 'rgba(255,255,255,.4)';
-  document.getElementById('tabBugs').style.borderBottomColor     = tab === 'bugs'     ? '#f87171'              : 'transparent';
+  document.getElementById('sectionStats').style.display    = tab === 'stats'    ? 'block' : 'none';
+  const tabs = { listings:'#FFD700', orders:'#B47FFF', bugs:'#f87171', stats:'#4ade80' };
+  for (const [t, color] of Object.entries(tabs)) {
+    const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (!el) continue;
+    el.style.color            = tab === t ? color : 'rgba(255,255,255,.4)';
+    el.style.borderBottomColor = tab === t ? color : 'transparent';
+  }
   if (tab === 'orders') loadOrders();
   if (tab === 'bugs')   loadBugReports();
+  if (tab === 'stats')  loadAnalytics();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -823,6 +892,234 @@ async function deleteOrder(id) {
     renderOrders();
     showToast('🗑️ 訂單已刪除', 'info');
   } catch(e) { showToast('❌ 刪除失敗', 'error'); }
+}
+
+/* ══════════════════════════════════════════════════════
+   ANALYTICS
+══════════════════════════════════════════════════════ */
+let analyticsRaw = [];
+
+async function loadAnalytics() {
+  try {
+    const res = await fetch('/api/analytics');
+    analyticsRaw = await res.json();
+  } catch(e) { analyticsRaw = []; }
+  renderAnalytics();
+}
+
+function applyStatsRange() { renderAnalytics(); }
+
+// Return events filtered by the selected day range
+function filteredEvents() {
+  const days = parseInt(document.getElementById('statsRange')?.value ?? '14', 10);
+  if (!days) return analyticsRaw;
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+  return analyticsRaw.filter(e => e.ts >= cutoff);
+}
+
+const TYPE_META = {
+  account_view:  { label: '帳號點擊',   color: '#63B3ED', icon: '👁' },
+  design_click:  { label: '製圖點擊',   color: '#B47FFF', icon: '🎨' },
+  sell_click:    { label: '出售點擊',   color: '#FFD700', icon: '💰' },
+  contact_click: { label: '聯繫點擊',   color: '#4ade80', icon: '💬' },
+};
+
+function renderAnalytics() {
+  const events = filteredEvents();
+  renderStatsCards(events);
+  renderDailyChart(events);
+  renderHourlyChart(events);
+  renderDowChart(events);
+  renderTypeBreakdown(events);
+  renderTopAccounts(events);
+  renderEventLog();
+}
+
+/* ── Summary cards ── */
+function renderStatsCards(events) {
+  const el = document.getElementById('statsCards');
+  if (!el) return;
+  const total = events.length;
+  const counts = {};
+  for (const t of Object.keys(TYPE_META)) counts[t] = 0;
+  for (const e of events) if (counts[e.type] !== undefined) counts[e.type]++;
+
+  const card = (icon, label, value, color) =>
+    `<div style="background:#0D0D26;border:1px solid rgba(255,255,255,.08);border-radius:.8rem;padding:.75rem .9rem;text-align:center">
+      <div style="font-size:1.3rem;margin-bottom:.25rem">${icon}</div>
+      <div style="font-size:.63rem;color:rgba(255,255,255,.35);margin-bottom:.2rem">${label}</div>
+      <div style="font-size:1.35rem;font-weight:900;color:${color}">${value.toLocaleString('zh-TW')}</div>
+    </div>`;
+
+  el.innerHTML =
+    card('📊', '總事件數', total, '#fff') +
+    Object.entries(TYPE_META).map(([t, m]) => card(m.icon, m.label, counts[t], m.color)).join('');
+}
+
+/* ── Daily trend bar chart ── */
+function renderDailyChart(events) {
+  const el = document.getElementById('chartDaily');
+  const leg = document.getElementById('legendDaily');
+  if (!el) return;
+
+  const days = parseInt(document.getElementById('statsRange')?.value ?? '14', 10) || 14;
+  const N = days || 30;
+  // Build day labels (YYYY-MM-DD in local time)
+  const dayKeys = [];
+  for (let i = N - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    dayKeys.push(d.toISOString().slice(0, 10));
+  }
+
+  // Aggregate per day per type
+  const data = {}; // date → { type → count }
+  for (const key of dayKeys) data[key] = { account_view:0, design_click:0, sell_click:0, contact_click:0 };
+  for (const e of events) {
+    const day = e.ts.slice(0, 10);
+    if (data[day]) data[day][e.type] = (data[day][e.type] || 0) + 1;
+  }
+
+  const maxVal = Math.max(1, ...dayKeys.map(d => Object.values(data[d]).reduce((a,b)=>a+b,0)));
+  const types = Object.keys(TYPE_META);
+
+  el.innerHTML = dayKeys.map(day => {
+    const total = Object.values(data[day]).reduce((a,b)=>a+b,0);
+    const pct = total / maxVal;
+    const label = day.slice(5); // MM-DD
+    const bars = types.map(t => {
+      const h = (data[day][t] / maxVal) * 100;
+      return `<div style="height:${h.toFixed(1)}%;background:${TYPE_META[t].color};flex:1;min-height:${h>0?'2px':'0'};border-radius:2px 2px 0 0" title="${TYPE_META[t].label}: ${data[day][t]}"></div>`;
+    }).join('');
+    return `<div style="display:flex;flex-direction:column;align-items:stretch;flex:1;min-width:18px;gap:0;cursor:default" title="${day}\n總計: ${total}">
+      <div style="flex:${(1-pct)*100};min-height:0"></div>
+      <div style="display:flex;flex-direction:row;align-items:flex-end;gap:1px;flex:${pct*100}">${bars}</div>
+      <div style="font-size:.5rem;color:rgba(255,255,255,.25);text-align:center;margin-top:3px;white-space:nowrap;overflow:hidden">${N<=14?label:''}</div>
+    </div>`;
+  }).join('');
+
+  leg.innerHTML = types.map(t =>
+    `<div style="display:flex;align-items:center;gap:.3rem;font-size:.72rem;color:rgba(255,255,255,.55)">
+      <div style="width:10px;height:10px;border-radius:2px;background:${TYPE_META[t].color};flex-shrink:0"></div>${TYPE_META[t].label}
+    </div>`).join('');
+}
+
+/* ── Hourly distribution ── */
+function renderHourlyChart(events) {
+  const el = document.getElementById('chartHourly');
+  if (!el) return;
+  const counts = new Array(24).fill(0);
+  for (const e of events) counts[new Date(e.ts).getHours()]++;
+  const maxVal = Math.max(1, ...counts);
+  el.innerHTML = counts.map((c, h) => {
+    const pct = (c / maxVal * 100).toFixed(1);
+    // Color heat: low=blue, high=gold
+    const alpha = 0.2 + (c / maxVal) * 0.8;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;cursor:default" title="${h}時: ${c} 次">
+      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+        <div style="width:100%;height:${pct}%;background:rgba(255,215,0,${alpha.toFixed(2)});border-radius:2px 2px 0 0;min-height:${c>0?'2px':'0'}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Day of week distribution ── */
+function renderDowChart(events) {
+  const el = document.getElementById('chartDow');
+  if (!el) return;
+  const counts = new Array(7).fill(0);
+  for (const e of events) counts[new Date(e.ts).getDay()]++;
+  const maxVal = Math.max(1, ...counts);
+  const DOW = ['日','一','二','三','四','五','六'];
+  el.innerHTML = counts.map((c, d) => {
+    const pct = (c / maxVal * 100).toFixed(1);
+    const isWeekend = d === 0 || d === 6;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;cursor:default" title="${DOW[d]}: ${c} 次">
+      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+        <div style="width:100%;height:${pct}%;background:${isWeekend?'rgba(180,127,255,.7)':'rgba(99,179,237,.7)'};border-radius:2px 2px 0 0;min-height:${c>0?'2px':'0'}"></div>
+      </div>
+      <div style="font-size:.58rem;color:rgba(255,255,255,.3);margin-top:3px">${c}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Type breakdown horizontal bars ── */
+function renderTypeBreakdown(events) {
+  const el = document.getElementById('chartTypeBreakdown');
+  if (!el) return;
+  const counts = {};
+  for (const t of Object.keys(TYPE_META)) counts[t] = 0;
+  for (const e of events) if (counts[e.type] !== undefined) counts[e.type]++;
+  const total = Math.max(1, events.length);
+
+  el.innerHTML = Object.entries(TYPE_META).map(([t, m]) => {
+    const c = counts[t];
+    const pct = (c / total * 100).toFixed(1);
+    return `<div style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:.3rem">
+        <span style="color:rgba(255,255,255,.65)">${m.icon} ${m.label}</span>
+        <span style="font-weight:700;color:${m.color}">${c.toLocaleString('zh-TW')} <span style="font-size:.65rem;color:rgba(255,255,255,.3)">(${pct}%)</span></span>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border-radius:999px;height:7px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${m.color};border-radius:999px;transition:width .4s ease"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Top accounts ── */
+function renderTopAccounts(events) {
+  const el = document.getElementById('chartTopAccounts');
+  if (!el) return;
+  const viewEvents = events.filter(e => e.type === 'account_view');
+  const map = {};
+  for (const e of viewEvents) {
+    const id = e.extra?.id ?? '?';
+    map[id] = (map[id] || 0) + 1;
+  }
+  const sorted = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  if (!sorted.length) { el.innerHTML = `<div style="color:rgba(255,255,255,.25);font-size:.78rem;padding:.5rem 0">尚無帳號點擊資料</div>`; return; }
+  const maxVal = sorted[0][1];
+  el.innerHTML = sorted.map(([id, cnt], i) => {
+    const acc = accounts.find(a => a.id == id);
+    const label = acc ? `NT$ ${Number(acc.price).toLocaleString('zh-TW')}` : `ID ${id}`;
+    const pct = (cnt / maxVal * 100).toFixed(1);
+    return `<div style="margin-bottom:.55rem">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.2rem">
+        <span style="color:rgba(255,255,255,.55)">${i+1}. <span style="color:#63B3ED">ID ${id}</span> ${escH(label)}</span>
+        <span style="font-weight:700;color:#63B3ED">${cnt}</span>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border-radius:999px;height:5px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:rgba(99,179,237,.7);border-radius:999px"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Recent event log ── */
+function renderEventLog() {
+  const el = document.getElementById('statsEventLog');
+  if (!el) return;
+  if (!analyticsRaw.length) {
+    el.innerHTML = `<div style="color:rgba(255,255,255,.25);font-size:.78rem;padding:.5rem 0;text-align:center">尚無事件資料</div>`;
+    return;
+  }
+  const recent = [...analyticsRaw].reverse().slice(0, 100);
+  el.innerHTML = recent.map(e => {
+    const m = TYPE_META[e.type] || { label: e.type, color: '#fff', icon: '•' };
+    const dt = new Date(e.ts);
+    const dateStr = dt.toLocaleDateString('zh-TW', { month:'2-digit', day:'2-digit' });
+    const timeStr = dt.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    let extra = '';
+    if (e.type === 'account_view' && e.extra?.id) {
+      const acc = accounts.find(a => a.id == e.extra.id);
+      extra = `<span style="color:rgba(255,255,255,.35);font-size:.65rem"> · ID ${e.extra.id}${acc ? ' NT$'+Number(acc.price).toLocaleString('zh-TW') : ''}</span>`;
+    }
+    return `<div style="display:flex;align-items:center;gap:.65rem;padding:.3rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.75rem">
+      <span style="color:rgba(255,255,255,.25);white-space:nowrap;font-size:.68rem;font-variant-numeric:tabular-nums">${dateStr} ${timeStr}</span>
+      <span style="padding:.1rem .45rem;border-radius:.35rem;background:${m.color}22;color:${m.color};font-weight:700;white-space:nowrap">${m.icon} ${m.label}</span>
+      ${extra}
+    </div>`;
+  }).join('');
 }
 
 /* ══════════════════════════════════════════════════════

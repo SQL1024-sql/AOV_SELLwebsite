@@ -12,6 +12,8 @@ const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 const MAINTENANCE_FILE = path.join(DATA_DIR, 'maintenance.json');
 const IMG_COUNTER_FILE = path.join(DATA_DIR, 'imgCounter.json');
 const BUG_REPORTS_FILE = path.join(DATA_DIR, 'bug_reports.json');
+const ANALYTICS_FILE   = path.join(DATA_DIR, 'analytics.json');
+const ANALYTICS_MAX    = 20000; // keep at most this many events
 const IMG_DIR          = path.join(DATA_DIR, 'acc_img');
 
 /* ── Security Headers ── */
@@ -431,6 +433,41 @@ app.delete('/api/submissions/:id', requireAuth, (req, res) => {
   subs.splice(idx, 1);
   writeSubmissions(subs);
   res.json({ ok: true });
+});
+
+/* ══════════════════════════════════════════════════════════
+   ANALYTICS API
+══════════════════════════════════════════════════════════ */
+
+function readAnalytics() {
+  try { return JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8')); }
+  catch(e) { return []; }
+}
+function writeAnalytics(data) {
+  fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(data), 'utf8');
+}
+
+/* POST /api/analytics/event  — public; body: { type, extra? } */
+app.post('/api/analytics/event', (req, res) => {
+  const VALID_TYPES = ['account_view', 'design_click', 'sell_click', 'contact_click'];
+  const { type, extra } = req.body;
+  if (!type || !VALID_TYPES.includes(type)) return res.status(400).json({ error: 'invalid type' });
+
+  const events = readAnalytics();
+  events.push({
+    type,
+    extra: extra && typeof extra === 'object' ? extra : {},
+    ts: new Date().toISOString(),
+  });
+  // Prune oldest events if over limit
+  if (events.length > ANALYTICS_MAX) events.splice(0, events.length - ANALYTICS_MAX);
+  writeAnalytics(events);
+  res.json({ ok: true });
+});
+
+/* GET /api/analytics  — auth required */
+app.get('/api/analytics', requireAuth, (req, res) => {
+  res.json(readAnalytics());
 });
 
 /* ══════════════════════════════════════════════════════════
