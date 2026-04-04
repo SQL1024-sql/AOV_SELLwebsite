@@ -114,7 +114,10 @@
       <div id="progressBar" style="width:0%;height:6px;border-radius:3px;background:linear-gradient(90deg,#FFD700,#FFA500);transition:width .3s"></div>
     </div>
     <div id="logList" style="display:flex;flex-direction:column;gap:.4rem;max-height:320px;overflow-y:auto"></div>
-    <div id="doneMsg" style="display:none;text-align:center;padding:1.5rem;font-size:1rem;font-weight:800;color:#4ade80">🎉 上傳完成！</div>
+    <div id="doneMsg" style="display:none;text-align:center;padding:1.5rem">
+      <div style="font-size:1rem;font-weight:800;color:#4ade80;margin-bottom:.5rem">🎉 上傳完成！</div>
+      <div style="font-size:.8rem;color:rgba(255,255,255,.45)">4 秒後自動清除，準備下一批…</div>
+    </div>
   </div>
 
 </main>
@@ -128,7 +131,11 @@ let items = []; // [{file, previewUrl, price}]
 /* ═══════════════════════════════════════
    FILE INPUT
 ═══════════════════════════════════════ */
-function onFiles(e) { addFiles(Array.from(e.target.files)); }
+function onFiles(e) {
+  addFiles(Array.from(e.target.files));
+  // Reset so the same files can be re-selected next time
+  e.target.value = '';
+}
 function addMore()  { document.getElementById('fileInput').click(); }
 
 function addFiles(files) {
@@ -194,6 +201,8 @@ function removeItem(idx) {
 function clearList() {
   items.forEach(i => URL.revokeObjectURL(i.previewUrl));
   items = [];
+  // Reset fileInput so the same files can be picked again next time
+  document.getElementById('fileInput').value = '';
   document.getElementById('dropZone').style.display = 'block';
   document.getElementById('listSection').style.display = 'none';
   document.getElementById('progressSection').style.display = 'none';
@@ -265,6 +274,11 @@ async function startUpload() {
   setProgress(items.length, items.length, '完成！');
   document.getElementById('doneMsg').style.display = 'block';
   document.getElementById('uploadBtn').disabled = false;
+
+  // Auto-reset after 4 seconds so next batch starts clean
+  setTimeout(() => {
+    clearList();
+  }, 4000);
 }
 
 function setProgress(done, total, text) {
