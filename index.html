@@ -1105,6 +1105,23 @@ window.addEventListener('popstate',()=>{
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;}}
   else if(h==='#/admin'){S.page='admin';}
+  // Check maintenance mode before rendering
+  try {
+    const mr = await fetch('/api/maintenance');
+    const md = await mr.json();
+    if (md.on) {
+      document.body.innerHTML = `
+        <div style="min-height:100vh;background:#07071A;display:flex;align-items:center;justify-content:center;font-family:'Noto Sans TC',system-ui,sans-serif;padding:2rem;text-align:center">
+          <div>
+            <div style="font-size:4rem;margin-bottom:1rem">🔧</div>
+            <h1 style="font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,#FFE57A,#FFD700,#FFA500);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.75rem">網站維護中</h1>
+            <p style="color:rgba(255,255,255,.5);font-size:.95rem;max-width:360px;line-height:1.7">我們正在進行系統更新，請稍後再回來。<br>感謝您的耐心等候！</p>
+          </div>
+        </div>`;
+      return;
+    }
+  } catch(e) { /* 若 API 失敗則照常顯示 */ }
+
   render(); // render immediately with default data
   accountsData = await loadAccountsFromAPI();
   render(); // re-render with real data from API

@@ -8,7 +8,10 @@
       "Bash(grep -rn \"sql\\\\|sqlite\\\\|mysql\\\\|mongo\\\\|query\" /workspaces/AOV_SELLwebsite --include=\"*.js\" --include=\"*.py\" ! -path \"*/node_modules/*\" ! -path \"*/.git/*\")",
       "Bash(ls -la /workspaces/AOV_SELLwebsite/.*)",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(node -e \"require\\('./server.js'\\)\")",
+      "Bash(curl -s http://localhost:3000/api/maintenance)",
+      "Bash(kill %1)"
     ]
   }
 }

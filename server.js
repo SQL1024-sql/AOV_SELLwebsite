@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR      = process.env.DATA_DIR || __dirname;
 const ACCOUNTS_FILE    = path.join(DATA_DIR, 'accounts.json');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
+const MAINTENANCE_FILE = path.join(DATA_DIR, 'maintenance.json');
 const IMG_DIR          = path.join(DATA_DIR, 'acc_img');
 
 /* ── Security Headers ── */
@@ -139,6 +140,15 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 });
 
+/* ── Helper: read / write maintenance.json ── */
+function readMaintenance() {
+  try { return JSON.parse(fs.readFileSync(MAINTENANCE_FILE, 'utf8')); }
+  catch(e) { return { on: false }; }
+}
+function writeMaintenance(data) {
+  fs.writeFileSync(MAINTENANCE_FILE, JSON.stringify(data), 'utf8');
+}
+
 /* ══════════════════════════════════════════════════════════
    API ROUTES
 ══════════════════════════════════════════════════════════ */
@@ -146,6 +156,19 @@ const upload = multer({
 /* Protect admin.html */
 app.get('/admin.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+/* GET /api/maintenance — public */
+app.get('/api/maintenance', (req, res) => {
+  res.json(readMaintenance());
+});
+
+/* POST /api/maintenance — auth required */
+app.post('/api/maintenance', requireAuth, (req, res) => {
+  const current = readMaintenance();
+  const next = { on: !current.on };
+  writeMaintenance(next);
+  res.json(next);
 });
 
 /* GET /api/accounts */
