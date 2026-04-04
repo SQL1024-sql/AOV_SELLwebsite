@@ -266,6 +266,23 @@ app.put('/api/accounts/:id', requireAuth, upload.single('image'), (req, res) => 
   res.json(accounts[idx]);
 });
 
+/* DELETE /api/accounts  — delete all accounts at once */
+app.delete('/api/accounts', requireAuth, (req, res) => {
+  const accounts = readAccounts();
+  // Delete all generated images
+  for (const acc of accounts) {
+    if (acc.imgNAME) {
+      const base = path.parse(acc.imgNAME).name;
+      if (/^\d{8}$/.test(base)) {
+        const imgPath = path.join(IMG_DIR, acc.imgNAME);
+        try { if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath); } catch {}
+      }
+    }
+  }
+  writeAccounts([]);
+  res.json({ ok: true, deleted: accounts.length });
+});
+
 /* DELETE /api/accounts/:id */
 app.delete('/api/accounts/:id', requireAuth, (req, res) => {
   const accounts = readAccounts();

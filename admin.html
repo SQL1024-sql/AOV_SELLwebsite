@@ -4,8 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>後台管理 — 傳說對決帳號</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Noto Sans TC',system-ui,sans-serif;background:#07071A;color:#fff;min-height:100vh}
@@ -273,7 +272,7 @@ const PER_PAGE  = 30;
    INIT
 ══════════════════════════════════════════════════════ */
 async function init() {
-  await Promise.all([loadAccounts(), loadMaintenance()]);
+  await Promise.all([loadAccounts(), loadMaintenance(), loadOrders()]);
   renderGrid();
 }
 
@@ -504,8 +503,13 @@ async function handleSubmit(e) {
     const data = await res.json();
     if (!res.ok) { showError(data.error || '操作失敗'); return; }
 
+    if (editId === null) {
+      accounts.push(data);
+    } else {
+      const idx = accounts.findIndex(a => a.id === editId);
+      if (idx !== -1) accounts[idx] = data;
+    }
     closeModal();
-    await loadAccounts();
     renderGrid();
     showToast(editId === null ? '✅ 貼文新增成功！' : '✅ 貼文已更新！', 'success');
   } catch(err) {
@@ -550,8 +554,8 @@ async function confirmDelete() {
   try {
     const res = await fetch(`/api/accounts/${deleteId}`, { method: 'DELETE' });
     if (!res.ok) { const d = await res.json(); showToast('❌ ' + (d.error || '刪除失敗'), 'error'); return; }
+    accounts.splice(accounts.findIndex(a => a.id === deleteId), 1);
     closeDeleteModal();
-    await loadAccounts();
     renderGrid();
     showToast('🗑️ 貼文已刪除', 'info');
   } catch(e) {
@@ -573,15 +577,12 @@ async function confirmDeleteAll() {
   btn.disabled = true;
   btn.textContent = '刪除中…';
   try {
-    const res = await fetch('/api/accounts');
-    const all = await res.json();
-    for (const acc of all) {
-      await fetch(`/api/accounts/${acc.id}`, { method: 'DELETE' });
-    }
+    const res = await fetch('/api/accounts', { method: 'DELETE' });
+    const data = await res.json();
     closeDeleteAllModal();
     await loadAccounts();
     renderGrid();
-    showToast(`🗑️ 已刪除全部 ${all.length} 筆帳號`, 'info');
+    showToast(`🗑️ 已刪除全部 ${data.deleted} 筆帳號`, 'info');
   } catch(e) {
     showToast('❌ 刪除失敗', 'error');
   } finally {
@@ -714,8 +715,11 @@ function togglePw(id, plain) {
 
 async function toggleOrder(id) {
   try {
-    await fetch(`/api/submissions/${id}`, { method: 'PATCH' });
-    await loadOrders();
+    const res = await fetch(`/api/submissions/${id}`, { method: 'PATCH' });
+    const updated = await res.json();
+    const idx = orders.findIndex(o => o.id === id);
+    if (idx !== -1) orders[idx] = updated;
+    renderOrders();
   } catch(e) { showToast('❌ 操作失敗', 'error'); }
 }
 
@@ -723,18 +727,13 @@ async function deleteOrder(id) {
   if (!confirm('確定要刪除這筆訂單？')) return;
   try {
     await fetch(`/api/submissions/${id}`, { method: 'DELETE' });
-    await loadOrders();
+    orders.splice(orders.findIndex(o => o.id === id), 1);
+    renderOrders();
     showToast('🗑️ 訂單已刪除', 'info');
   } catch(e) { showToast('❌ 刪除失敗', 'error'); }
 }
 
 init();
-// load order badge on init
-fetch('/api/submissions').then(r=>r.json()).then(data=>{
-  const pending = data.filter(o=>!o.done).length;
-  const badge = document.getElementById('orderBadge');
-  if(pending>0){badge.style.display='inline';badge.textContent=pending;}
-}).catch(()=>{});
 </script>
 </body>
 </html>
