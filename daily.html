@@ -4,7 +4,6 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>每日上架 — 傳說對決</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -26,10 +25,6 @@
     .card:hover{border-color:rgba(255,215,0,.2)}
     .drop-zone{border:2px dashed rgba(255,215,0,.25);border-radius:1rem;padding:3rem 2rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
     .drop-zone:hover,.drop-zone.over{border-color:rgba(255,215,0,.6);background:rgba(255,215,0,.04)}
-    .badge-wait{background:rgba(255,255,255,.08);color:rgba(255,255,255,.45);border-radius:.35rem;padding:.15rem .5rem;font-size:.7rem;font-weight:700}
-    .badge-ok{background:rgba(34,197,94,.15);color:#4ade80;border-radius:.35rem;padding:.15rem .5rem;font-size:.7rem;font-weight:700}
-    .badge-err{background:rgba(239,68,68,.15);color:#f87171;border-radius:.35rem;padding:.15rem .5rem;font-size:.7rem;font-weight:700}
-    .badge-ing{background:rgba(99,179,237,.15);color:#63B3ED;border-radius:.35rem;padding:.15rem .5rem;font-size:.7rem;font-weight:700}
     #progressBar{height:6px;border-radius:3px;background:linear-gradient(90deg,#FFD700,#FFA500);transition:width .3s}
   </style>
 </head>
@@ -128,6 +123,18 @@
 
 <script>
 /* ═══════════════════════════════════════
+   AUTH — page is protected by server, but API calls need credentials too
+═══════════════════════════════════════ */
+function getAuthHeaders() {
+  // Browser already has credentials from the Basic Auth prompt; reuse them
+  return {};
+}
+function authFetch(url, opts = {}) {
+  // Use credentials: 'include' so the browser resends the Basic Auth header
+  return fetch(url, { ...opts, credentials: 'same-origin' });
+}
+
+/* ═══════════════════════════════════════
    STATE
 ═══════════════════════════════════════ */
 let items = []; // [{file, previewUrl, price}]
@@ -166,10 +173,9 @@ function showMemoryBanner(restored, total) {
 ═══════════════════════════════════════ */
 function onFiles(e) {
   addFiles(Array.from(e.target.files));
-  // Reset so the same files can be re-selected next time
   e.target.value = '';
 }
-function addMore()  { document.getElementById('fileInput').click(); }
+function addMore() { document.getElementById('fileInput').click(); }
 
 function addFiles(files) {
   const imgFiles = files.filter(f => /^image\//i.test(f.type));
@@ -177,7 +183,6 @@ function addFiles(files) {
   const mem = loadMemory();
   let restored = 0;
   imgFiles.forEach(f => {
-    // avoid duplicates by name
     if (items.find(i => i.file.name === f.name)) return;
     const url = URL.createObjectURL(f);
     const savedPrice = mem[f.name] || '';
@@ -239,7 +244,6 @@ function removeItem(idx) {
 function clearList() {
   items.forEach(i => URL.revokeObjectURL(i.previewUrl));
   items = [];
-  // Reset fileInput so the same files can be picked again next time
   document.getElementById('fileInput').value = '';
   document.getElementById('dropZone').style.display = 'block';
   document.getElementById('listSection').style.display = 'none';
@@ -257,7 +261,6 @@ function escH(s) {
    UPLOAD
 ═══════════════════════════════════════ */
 async function startUpload() {
-  // Validate
   const invalid = items.filter(i => !i.price || Number(i.price) <= 0);
   if (invalid.length) {
     checkMissing();
@@ -273,14 +276,11 @@ async function startUpload() {
   document.getElementById('logList').innerHTML = '';
   setProgress(0, items.length, '正在清除舊資料…');
 
-  // Step 1: clear old accounts
+  // Step 1: bulk delete all accounts (single API call)
   try {
-    const res  = await fetch('/api/accounts');
-    const old  = await res.json();
-    for (const acc of old) {
-      await fetch(`/api/accounts/${acc.id}`, { method: 'DELETE' });
-    }
-    addLog(`🗑️ 已清除 ${old.length} 筆舊資料`, 'info');
+    const res = await fetch('/api/accounts', { method: 'DELETE' });
+    const data = await res.json();
+    addLog(`🗑️ 已清除 ${data.deleted || 0} 筆舊資料`, 'info');
   } catch(e) {
     addLog('❌ 清除舊資料失敗：' + e.message, 'error');
     document.getElementById('uploadBtn').disabled = false;
@@ -312,12 +312,9 @@ async function startUpload() {
   setProgress(items.length, items.length, '完成！');
   document.getElementById('doneMsg').style.display = 'block';
   document.getElementById('uploadBtn').disabled = false;
-  clearMemory(); // 上傳完成，清除記憶
+  clearMemory();
 
-  // Auto-reset after 4 seconds so next batch starts clean
-  setTimeout(() => {
-    clearList();
-  }, 4000);
+  setTimeout(() => { clearList(); }, 4000);
 }
 
 function setProgress(done, total, text) {

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>傳說對決帳號展示</title>
+  <meta name="description" content="傳說對決 AOV 帳號現貨展示平台，多種帳號供您選擇，安全交易有保障。" />
   <!-- Open Graph / 社群預覽 -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://aovsellwebsite-production.up.railway.app/" />
@@ -14,7 +15,7 @@
   <meta property="og:image:height" content="630" />
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://aovsellwebsite-production.up.railway.app/preview.jpg" />
+  <meta name="twitter:image" content="https://image2url.com/r2/default/images/1775222036145-64e1a4be-ab6d-4101-8f31-69f3c981652b.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
@@ -159,6 +160,7 @@
   </style>
 </head>
 <body class="bg-grid">
+<noscript><div style="text-align:center;padding:4rem 1rem;color:#fff;font-size:1.1rem">此網站需要啟用 JavaScript 才能正常使用。請在瀏覽器設定中啟用 JavaScript。</div></noscript>
 <div id="app"></div>
 
 <script>
@@ -166,73 +168,7 @@
    DEFAULT DATA  (fallback when localStorage is empty)
    Future: load from Supabase
    ===================================================== */
-const DEFAULT_ACCOUNTS = [
-  {
-    id:1, sellerId:"demo",
-    title:"傳說 高CP值帳號 全英雄解鎖",
-    price:10000, rank:"傳說",
-    heroCount:51, skinCount:71, winRate:"61.7%", matches:668,
-    isNew:true, sold:false, views:312,
-    coverImage:"acc.jpg", images:["acc.jpg"],
-    contact:{ lineId:"@seller_demo", lineUrl:"https://line.me/ti/p/~seller_demo", messengerUrl:"https://m.me/sellerdemo" },
-    tags:["限定皮膚","高勝率"],
-  },
-  {
-    id:2, sellerId:"demo",
-    title:"鑽石 穩定帳號 多套史詩皮膚",
-    price:6500, rank:"鑽石",
-    heroCount:44, skinCount:53, winRate:"58.2%", matches:432,
-    isNew:false, sold:false, views:187,
-    coverImage:"https://picsum.photos/seed/aov2/800/600",
-    images:["https://picsum.photos/seed/aov2/1200/900","https://picsum.photos/seed/aov2b/1200/900"],
-    contact:{ lineId:"@seller_demo", lineUrl:"https://line.me/ti/p/~seller_demo", messengerUrl:"https://m.me/sellerdemo" },
-    tags:["史詩皮膚"],
-  },
-  {
-    id:3, sellerId:"demo",
-    title:"傳說 旗艦帳號 108英雄 FMVP限定",
-    price:18000, rank:"傳說",
-    heroCount:71, skinCount:108, winRate:"65.4%", matches:1204,
-    isNew:true, sold:false, views:561,
-    coverImage:"https://picsum.photos/seed/aov3/800/600",
-    images:["https://picsum.photos/seed/aov3/1200/900","https://picsum.photos/seed/aov3b/1200/900","https://picsum.photos/seed/aov3c/1200/900"],
-    contact:{ lineId:"@seller_vip", lineUrl:"https://line.me/ti/p/~seller_vip", messengerUrl:"https://m.me/sellervip" },
-    tags:["FMVP皮膚","限定"],
-  },
-  {
-    id:4, sellerId:"demo",
-    title:"宗師 入門帳號 高性價比首選",
-    price:3800, rank:"宗師",
-    heroCount:32, skinCount:28, winRate:"54.9%", matches:311,
-    isNew:false, sold:true, views:98,
-    coverImage:"https://picsum.photos/seed/aov4/800/600",
-    images:["https://picsum.photos/seed/aov4/1200/900"],
-    contact:{ lineId:"@seller_demo", lineUrl:"https://line.me/ti/p/~seller_demo", messengerUrl:"https://m.me/sellerdemo" },
-    tags:["平價入門"],
-  },
-  {
-    id:5, sellerId:"demo",
-    title:"傳說 限定造型收藏帳號 89套皮膚",
-    price:14500, rank:"傳說",
-    heroCount:63, skinCount:89, winRate:"62.8%", matches:980,
-    isNew:false, sold:false, views:430,
-    coverImage:"https://picsum.photos/seed/aov5/800/600",
-    images:["https://picsum.photos/seed/aov5/1200/900","https://picsum.photos/seed/aov5b/1200/900"],
-    contact:{ lineId:"@seller_vip", lineUrl:"https://line.me/ti/p/~seller_vip", messengerUrl:"https://m.me/sellervip" },
-    tags:["限定皮膚","AI英雄"],
-  },
-  {
-    id:6, sellerId:"demo",
-    title:"鑽石 冠軍賽專屬皮膚 60套造型",
-    price:7200, rank:"鑽石",
-    heroCount:47, skinCount:60, winRate:"59.1%", matches:561,
-    isNew:false, sold:false, views:224,
-    coverImage:"https://picsum.photos/seed/aov6/800/600",
-    images:["https://picsum.photos/seed/aov6/1200/900","https://picsum.photos/seed/aov6b/1200/900"],
-    contact:{ lineId:"@seller_demo", lineUrl:"https://line.me/ti/p/~seller_demo", messengerUrl:"https://m.me/sellerdemo" },
-    tags:["冠軍賽皮膚"],
-  },
-];
+const DEFAULT_ACCOUNTS = [];
 
 /* =====================================================
    GLOBAL CONTACT INFO
@@ -266,8 +202,7 @@ async function loadAccountsFromAPI() {
       tags:        [],
     }));
   } catch(e) {
-    // Fallback to default sample data if API unavailable
-    return JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+    return [];
   }
 }
 function saveAccounts() {
@@ -292,10 +227,7 @@ const S = {
   activeImg:0,
   lightboxOpen:false,
   contactOpen:false,    // which account id, or null for generic
-  loginOpen:false,
-  isLoggedIn:false,
-  currentUser:null,     // { name, email, id }
-  loginError:'',
+  isLoading:true,
   copied:false,
   // services
   serviceModal: null,   // null | 'buy' | 'design'
@@ -310,13 +242,6 @@ const S = {
   bugReportStep: 'form',  // 'form' | 'done'
   bugReportError: '',
   bugReportSubmitting: false,
-  // admin
-  adminTab:'listings',  // 'listings'
-  formOpen:false,       // add / edit modal
-  formMode:'add',       // 'add' | 'edit'
-  formId:null,          // id being edited
-  formError:'',
-  formImages:[],        // [{url:'', price:'', previewUrl:''}] for batch add
   deleteConfirmId:null,
 };
 
@@ -352,7 +277,7 @@ function filteredList(){
   }
   if(S.sortBy==='price-asc')  items.sort((a,b)=>a.price-b.price);
   if(S.sortBy==='price-desc') items.sort((a,b)=>b.price-a.price);
-  if(S.sortBy==='skins-desc') items.sort((a,b)=>b.skinCount-a.skinCount);
+  if(S.sortBy==='newest')     items.sort((a,b)=>b.id-a.id);
   return items;
 }
 
@@ -362,25 +287,31 @@ function filteredList(){
 function render(){
   document.getElementById('app').innerHTML=
     renderNav()+
-    (S.page==='list'   ? renderListPage()   :
-     S.page==='detail' ? renderDetailPage() :
-     S.page==='admin'  ? renderAdminPage()  :
-     S.page==='design' ? renderDesignPage() : '')+
+    (S.isLoading          ? renderLoadingState() :
+     S.page==='list'      ? renderListPage()     :
+     S.page==='detail'    ? renderDetailPage()   :
+     S.page==='design'    ? renderDesignPage()   : '')+
     renderFooter()+
     (S.contactOpen!==false   ? renderContactModal()  : '')+
     (S.serviceModal           ? renderServiceModal()  : '')+
-    (S.loginOpen             ? renderLoginModal()    : '')+
     (S.lightboxOpen          ? renderLightbox()      : '')+
-    (S.formOpen              ? renderFormModal()     : '')+
     (S.deleteConfirmId!==null? renderDeleteConfirm() : '')+
     (S.designConfirmOpen     ? renderDesignConfirmModal() : '')+
     (S.bugReportOpen         ? renderBugReportModal()    : '');
   attachEvents();
 }
 
+function renderLoadingState(){
+  return `
+  <div style="max-width:80rem;margin:0 auto;padding:4rem 1rem;text-align:center;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div style="width:2.5rem;height:2.5rem;border:3px solid rgba(255,215,0,.2);border-top-color:#FFD700;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:1.5rem"></div>
+    <div style="font-size:.95rem;color:rgba(255,255,255,.5)">載入中…</div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+  </div>`;
+}
+
 /* ── NAV ── */
 function renderNav(){
-  const isAdmin=S.page==='admin';
   return `
   <nav class="glass-dark" style="border-bottom:1px solid rgba(255,215,0,.1)">
     <div class="nav-main-row" style="max-width:80rem;margin:0 auto;padding:.65rem 1rem;display:flex;align-items:center;gap:.75rem">
@@ -391,7 +322,6 @@ function renderNav(){
         </div>
       </button>
 
-      ${!isAdmin?`
       <div class="nav-search-wrap" style="flex:1;position:relative;max-width:480px;margin:0 auto">
         <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);width:.9rem;height:.9rem;pointer-events:none;color:rgba(255,255,255,.32)" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -399,7 +329,6 @@ function renderNav(){
         <input type="text" class="search-bar" id="searchInput" placeholder="搜尋價格" value="${esc(S.searchInput)}" oninput="S.searchInput=this.value" onkeydown="if(event.key==='Enter')handleSearch(this.value)" style="padding-right:2.8rem"/>
         <button onclick="handleSearch(document.getElementById('searchInput').value)" style="position:absolute;right:.4rem;top:50%;transform:translateY(-50%);background:rgba(255,215,0,.2);border:1px solid rgba(255,215,0,.35);color:#FFD700;border-radius:.5rem;padding:.22rem .55rem;cursor:pointer;font-size:.75rem;font-weight:700">搜尋</button>
       </div>
-      `:isAdmin?`<div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.55)">商家後台</div>`:'<div style="flex:1"></div>'}
 
       <button onclick="openServiceModal('buy')" class="nav-action-btn" style="flex-shrink:0;display:flex;align-items:center;gap:.3rem;padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:700;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:rgba(255,215,0,.8);cursor:pointer" onmouseover="this.style.borderColor='rgba(255,215,0,.5)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,215,0,.2)';this.style.color='rgba(255,215,0,.8)'">
         💰 賣帳號
@@ -411,14 +340,6 @@ function renderNav(){
         💬 聯繫我們
       </button>
 
-      ${S.isLoggedIn?`
-      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
-        <button onclick="goAdmin()" class="nav-action-btn" style="padding:.38rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:600;background:${isAdmin?'rgba(255,215,0,.18)':'rgba(255,255,255,.07)'};border:1px solid ${isAdmin?'rgba(255,215,0,.4)':'rgba(255,255,255,.15)'};color:${isAdmin?'#FFD700':'rgba(255,255,255,.65)'};cursor:pointer">
-          ⚙ 後台
-        </button>
-        <button onclick="handleLogout()" class="nav-action-btn" style="font-size:.7rem;color:rgba(255,255,255,.3);background:none;border:none;cursor:pointer;padding:.38rem .3rem" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.3)'">登出</button>
-      </div>
-      `:''}
     </div>
   </nav>`;
 }
@@ -482,6 +403,7 @@ function renderListPage(){
         <option value="default"    ${S.sortBy==='default'?'selected':''}>預設排序</option>
         <option value="price-asc"  ${S.sortBy==='price-asc'?'selected':''}>價格 低→高</option>
         <option value="price-desc" ${S.sortBy==='price-desc'?'selected':''}>價格 高→低</option>
+        <option value="newest"     ${S.sortBy==='newest'?'selected':''}>最新上架</option>
       </select>
     </div>
 
@@ -599,14 +521,16 @@ function renderDetailPage(){
   `;
 }
 
-/* ── ADMIN PAGE ── */
+/* ── ADMIN PAGE (redirect to admin.html) ── */
 function renderAdminPage(){
-  if(!S.isLoggedIn) return`<div style="text-align:center;padding:8rem 1rem"><div style="font-size:2rem;margin-bottom:1rem">🔒</div><div style="color:rgba(255,255,255,.5);margin-bottom:1.5rem">請先登入才能使用後台</div><button onclick="openLogin()" class="btn btn-gold" style="font-size:.95rem;padding:.65rem 1.75rem">前往登入</button></div>`;
-
+  window.location.href = '/admin.html';
+  return '<div style="text-align:center;padding:4rem;color:rgba(255,255,255,.4)">正在跳轉到後台…</div>';
+}
+function _renderAdminPage_REMOVED(){
   // seller's own listings
-  const mine=accountsData.filter(a=>a.sellerId===S.currentUser.id);
-  const avail=mine.filter(a=>!a.sold).length;
-  const sold=mine.filter(a=>a.sold).length;
+  const mine=[];
+  const avail=0;
+  const sold=0;
 
   return`
   <div style="max-width:56rem;margin:0 auto;padding:1.5rem 1rem 4rem">
@@ -677,7 +601,8 @@ function renderAdminPage(){
   </div>`;
 }
 
-/* ── FORM MODAL (Add / Edit) ── */
+/* ── FORM MODAL (removed — managed in admin.html) ── */
+function renderFormModal(){ return ''; }
 function renderFormModal(){
   const isEdit=S.formMode==='edit';
   const acc=isEdit?accountsData.find(a=>a.id===S.formId):null;
@@ -1062,8 +987,9 @@ function renderDesignPage(){
   </div>`;
 }
 
-/* ── LOGIN MODAL ── */
-function renderLoginModal(){
+/* ── LOGIN MODAL (removed — admin uses Basic Auth via admin.html) ── */
+function renderLoginModal(){ return ''; }
+function _renderLoginModal_REMOVED(){
   return`
   <div class="modal-backdrop" onclick="closeLogin()">
     <div class="modal-box glass" style="width:100%;max-width:340px;padding:1.4rem;border-color:rgba(255,215,0,.28)" onclick="event.stopPropagation()">
@@ -1129,7 +1055,7 @@ function renderFooter(){
 function attachEvents(){
   document.onkeydown=(e)=>{
     if(S.lightboxOpen){if(e.key==='ArrowLeft')navImg(-1);if(e.key==='ArrowRight')navImg(1);if(e.key==='Escape')closeLightbox();}
-    else if(e.key==='Escape'){closeContact();closeLogin();closeForm();closeServiceModal();S.deleteConfirmId=null;if(S.bugReportOpen)closeBugReport();}
+    else if(e.key==='Escape'){closeContact();closeServiceModal();S.deleteConfirmId=null;if(S.bugReportOpen)closeBugReport();}
   };
 }
 
@@ -1141,7 +1067,7 @@ function trackEvent(type, extra){
 /* Navigation */
 function goHome(){document.body.style.overflow='';history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
 function goDetail(id){document.body.style.overflow='';history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;render();window.scrollTo({top:0,behavior:'instant'});fetch(`/api/accounts/${id}/view`,{method:'POST'}).catch(()=>{});trackEvent('account_view',{id});}
-function goAdmin(){document.body.style.overflow='';history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
+function goAdmin(){window.location.href='/admin.html';}
 function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;S.designConfirmOpen=false;S.designOrderNo='';clearDsFormData();window.scrollTo({top:0,behavior:'smooth'});render();trackEvent('design_click');}
 
 /* List */
@@ -1388,8 +1314,8 @@ async function submitBugReport(){
 }
 
 /* Login */
-function openLogin(){S.loginOpen=true;S.loginError='';document.body.style.overflow='hidden';render()}
-function closeLogin(){S.loginOpen=false;document.body.style.overflow='';render()}
+function openLogin(){goAdmin();}
+function closeLogin(){}
 function handleLogin(){
   const e=document.getElementById('loginEmail')?.value||'';
   const p=document.getElementById('loginPassword')?.value||'';
@@ -1402,12 +1328,12 @@ function handleLogin(){
   S.loginOpen=false;S.loginError='';document.body.style.overflow='';
   goAdmin();
 }
-function handleLogout(){S.isLoggedIn=false;S.currentUser=null;goHome()}
+function handleLogout(){goHome()}
 
 /* Admin: Add / Edit form */
-function openFormAdd(){S.formOpen=true;S.formMode='add';S.formId=null;S.formError='';S.formImages=[{url:'',price:'',previewUrl:''}];_formImageFiles=[null];document.body.style.overflow='hidden';render()}
-function openFormEdit(id){S.formOpen=true;S.formMode='edit';S.formId=id;S.formError='';const acc=accountsData.find(a=>a.id===id);S.formImages=[{url:acc?.coverImage||'',price:String(acc?.price||''),previewUrl:''}];_formImageFiles=[null];document.body.style.overflow='hidden';render()}
-function closeForm(){S.formOpen=false;document.body.style.overflow='';render()}
+function openFormAdd(){goAdmin();}
+function openFormEdit(){goAdmin();}
+function closeForm(){}
 
 function saveFormImages(){
   S.formImages.forEach((img,i)=>{
@@ -1500,7 +1426,7 @@ window.addEventListener('popstate',()=>{
   S.lightboxOpen=false;S.contactOpen=false;
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;S.activeImg=0;}}
-  else if(h==='#/admin'){S.page='admin';}
+  else if(h==='#/admin'){window.location.href='/admin.html';return;}
   else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;_dsBindImg=null;_dsBindImgUrl=null;restoreDsFormData();}
   else{S.page='list';S.accountId=null;}
   render();
@@ -1510,7 +1436,7 @@ window.addEventListener('popstate',()=>{
 (async()=>{
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;}}
-  else if(h==='#/admin'){S.page='admin';}
+  else if(h==='#/admin'){window.location.href='/admin.html';return;}
   else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';restoreDsFormData();}
   // Load per-service maintenance flags
   try {
@@ -1523,8 +1449,9 @@ window.addEventListener('popstate',()=>{
     };
   } catch(e) { /* ignore, default to no maintenance */ }
 
-  render(); // render immediately with default data
+  render(); // render loading state
   accountsData = await loadAccountsFromAPI();
+  S.isLoading = false;
   render(); // re-render with real data from API
 })();
 </script>

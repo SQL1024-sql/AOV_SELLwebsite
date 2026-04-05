@@ -3,6 +3,10 @@ node_modules
 acc_img/
 accounts.json
 submissions.json
+maintenance.json
+imgCounter.json
+bug_reports.json
+analytics.json
 .env
 wrangler.toml
 wrangler.jsonc
