@@ -293,7 +293,7 @@ async function startUpload() {
     setProgress(done, items.length, `上傳中 ${item.file.name}…`);
     const fd = new FormData();
     fd.append('price', item.price);
-    fd.append('image', item.file, item.file.name);
+    fd.append('images', item.file, item.file.name);
     try {
       const r = await fetch('/api/accounts', { method: 'POST', body: fd });
       if (r.ok) {

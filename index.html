@@ -316,6 +316,7 @@ const S = {
   formMode:'add',       // 'add' | 'edit'
   formId:null,          // id being edited
   formError:'',
+  formImages:[],        // [{url:'', price:'', previewUrl:''}] for batch add
   deleteConfirmId:null,
 };
 
@@ -702,11 +703,11 @@ function renderFormModal(){
         <input id="f_title" class="inp" placeholder="例：傳說 旗艦帳號 108英雄 限定皮膚" value="${v('title')}"/>
       </div>
       <div class="form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-        <div class="form-group">
+        ${isEdit?`<div class="form-group">
           <label class="form-label">售價 (NT$) *</label>
           <input id="f_price" class="inp" type="number" min="0" placeholder="10000" value="${v('price')}"/>
-        </div>
-        <div class="form-group">
+        </div>`:''}
+        <div class="form-group" ${isEdit?'':'style="grid-column:1/3"'}>
           <label class="form-label">段位 *</label>
           <select id="f_rank" class="inp">
             ${['傳說','鑽石','宗師','其他'].map(r=>`<option value="${r}" ${(acc?.rank||'傳說')===r?'selected':''}>${r}</option>`).join('')}
@@ -738,7 +739,8 @@ function renderFormModal(){
         </label>
       </div>
 
-      <!-- Section: 圖片 -->
+      ${isEdit?`
+      <!-- Section: 圖片（編輯模式） -->
       <div style="font-size:.72rem;font-weight:700;color:rgba(255,215,0,.7);letter-spacing:.05em;margin-bottom:.6rem;padding-bottom:.3rem;border-bottom:1px solid rgba(255,215,0,.12)">圖片</div>
       <div class="form-group">
         <label class="form-label">封面圖片網址 *</label>
@@ -748,13 +750,34 @@ function renderFormModal(){
         <label class="form-label">其他截圖網址（每行一個）</label>
         <textarea id="f_images" class="inp" placeholder="https://pic1.jpg&#10;https://pic2.jpg">${esc(imagesVal)}</textarea>
       </div>
-
+      `:`
+      <!-- Section: 批量新增圖片＋售價 -->
+      <div style="font-size:.72rem;font-weight:700;color:rgba(255,215,0,.7);letter-spacing:.05em;margin-bottom:.6rem;padding-bottom:.3rem;border-bottom:1px solid rgba(255,215,0,.12)">圖片與售價（每筆建立一個帳號）</div>
+      ${S.formImages.map((img,i)=>`
+        <div style="border:1px solid rgba(255,215,0,.15);border-radius:.75rem;padding:.85rem;margin-bottom:.6rem;position:relative;background:rgba(255,215,0,.02)">
+          ${S.formImages.length>1?`<button onclick="removeFormImage(${i})" style="position:absolute;top:.5rem;right:.5rem;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:.4rem;padding:.15rem .5rem;font-size:.72rem;cursor:pointer;line-height:1.4">✕</button>`:''}
+          <div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-bottom:.5rem;font-weight:700">帳號 #${i+1}</div>
+          ${img.previewUrl?`<img src="${img.previewUrl}" style="width:100%;max-height:130px;object-fit:cover;border-radius:.5rem;margin-bottom:.55rem;border:1px solid rgba(255,215,0,.15)"/>`:''}
+          <div style="display:grid;grid-template-columns:1fr auto;gap:.45rem;margin-bottom:.55rem;align-items:center">
+            <input id="f_img_url_${i}" class="inp" placeholder="封面圖片網址 https://..." value="${esc(img.url)}" style="font-size:.8rem"/>
+            <label style="cursor:pointer;padding:.45rem .65rem;border-radius:.5rem;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);color:#FFD700;font-size:.75rem;white-space:nowrap;user-select:none;display:flex;align-items:center;gap:.3rem">
+              📁 上傳<input type="file" accept="image/*" onchange="handleFormImageFile(this,${i})" style="display:none"/>
+            </label>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">售價 (NT$) *</label>
+            <input id="f_img_price_${i}" class="inp" type="number" min="0" placeholder="10000" value="${esc(img.price)}"/>
+          </div>
+        </div>
+      `).join('')}
+      <button onclick="addFormImage()" style="width:100%;padding:.5rem;border-radius:.6rem;background:rgba(255,215,0,.06);border:1px dashed rgba(255,215,0,.3);color:rgba(255,215,0,.65);cursor:pointer;font-size:.82rem;margin-bottom:.75rem;font-weight:600">＋ 再新增一筆</button>
+      `}
 
       <!-- Submit -->
       <div style="display:flex;gap:.65rem;margin-top:.5rem">
         <button onclick="closeForm()" class="btn btn-outline" style="flex:1;padding:.65rem">取消</button>
         <button onclick="submitForm()" class="btn btn-gold" style="flex:2;padding:.65rem;font-size:.92rem">
-          ${isEdit?'💾 儲存變更':'🚀 發布帳號'}
+          ${isEdit?'💾 儲存變更':`🚀 發布 ${S.formImages.filter(img=>img.url&&img.price).length||''} 個帳號`}
         </button>
       </div>
     </div>
@@ -894,19 +917,19 @@ function renderDesignModal(){
 
       <div class="form-group">
         <label class="form-label">遊戲帳號 <span style="color:#f87171">*</span></label>
-        <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號" value="${esc(S._dsFormData.gameAccount)}"/>
+        <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號" value="${esc(S._dsFormData.gameAccount)}" oninput="saveDsFormData()"/>
       </div>
       <div class="form-group">
         <label class="form-label">遊戲密碼 <span style="color:#f87171">*</span></label>
         <div style="position:relative">
-          <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem" value="${esc(S._dsFormData.gamePassword)}"/>
+          <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem" value="${esc(S._dsFormData.gamePassword)}" oninput="saveDsFormData()"/>
           <button type="button" onclick="togglePwVis()" style="position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.82rem" id="pwToggleBtn">👁</button>
         </div>
         <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">🔒 資料加密傳輸，製圖完成後立即刪除</div>
       </div>
       <div class="form-group">
         <label class="form-label">綁定方式 <span style="color:#f87171">*</span></label>
-        <select id="dsBindType" class="inp" style="cursor:pointer">
+        <select id="dsBindType" class="inp" style="cursor:pointer" onchange="saveDsFormData()">
           <option value="" ${!S._dsFormData.bindType?'selected':''}>請選擇綁定方式</option>
           <option value="Garena" ${S._dsFormData.bindType==='Garena'?'selected':''}>Garena</option>
           <option value="Google" ${S._dsFormData.bindType==='Google'?'selected':''}>Google</option>
@@ -916,11 +939,11 @@ function renderDesignModal(){
       </div>
       <div class="form-group">
         <label class="form-label">聯繫方式 <span style="color:#f87171">*</span></label>
-        <input id="dsContact" type="text" class="inp" placeholder="FB / IG …" value="${esc(S._dsFormData.contact)}"/>
+        <input id="dsContact" type="text" class="inp" placeholder="FB / IG …" value="${esc(S._dsFormData.contact)}" oninput="saveDsFormData()"/>
       </div>
       <div class="form-group">
         <label class="form-label">備註</label>
-        <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:60px">${esc(S._dsFormData.note)}</textarea>
+        <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:60px" oninput="saveDsFormData()">${esc(S._dsFormData.note)}</textarea>
       </div>
 
       <button onclick="submitDesign()" ${S.designSubmitting?'disabled':''} style="width:100%;padding:.65rem;border-radius:.7rem;font-weight:900;font-size:.92rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;opacity:${S.designSubmitting?'.6':'1'}">
@@ -932,6 +955,7 @@ function renderDesignModal(){
 
 /* ── DESIGN PAGE ── */
 let _dsBindImg = null;
+let _formImageFiles = [];
 
 function renderDesignPage(){
   if(S.maintenance.design) return`
@@ -985,19 +1009,19 @@ function renderDesignPage(){
 
     <div class="form-group">
       <label class="form-label">遊戲帳號 <span style="color:#f87171">*</span></label>
-      <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號" value="${esc(S._dsFormData.gameAccount)}"/>
+      <input id="dsGameAcc" type="text" class="inp" placeholder="請輸入遊戲帳號" value="${esc(S._dsFormData.gameAccount)}" oninput="saveDsFormData()"/>
     </div>
     <div class="form-group">
       <label class="form-label">遊戲密碼 <span style="color:#f87171">*</span></label>
       <div style="position:relative">
-        <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem" value="${esc(S._dsFormData.gamePassword)}"/>
+        <input id="dsGamePw" type="password" class="inp" placeholder="請輸入遊戲密碼" style="padding-right:2.8rem" value="${esc(S._dsFormData.gamePassword)}" oninput="saveDsFormData()"/>
         <button type="button" onclick="togglePwVis()" style="position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:.82rem" id="pwToggleBtn">👁</button>
       </div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.28);margin-top:.3rem">🔒 資料加密傳輸，製圖完成後立即刪除</div>
     </div>
     <div class="form-group">
       <label class="form-label">綁定方式 <span style="color:#f87171">*</span></label>
-      <select id="dsBindType" class="inp" style="cursor:pointer">
+      <select id="dsBindType" class="inp" style="cursor:pointer" onchange="saveDsFormData()">
         <option value="" ${!S._dsFormData.bindType?'selected':''}>請選擇綁定方式</option>
         <option value="Garena" ${S._dsFormData.bindType==='Garena'?'selected':''}>Garena</option>
         <option value="Google" ${S._dsFormData.bindType==='Google'?'selected':''}>Google</option>
@@ -1024,11 +1048,11 @@ function renderDesignPage(){
     </div>
     <div class="form-group">
       <label class="form-label">聯繫方式 <span style="color:#f87171">*</span></label>
-      <input id="dsContact" type="text" class="inp" placeholder="FB / IG …" value="${esc(S._dsFormData.contact)}"/>
+      <input id="dsContact" type="text" class="inp" placeholder="FB / IG …" value="${esc(S._dsFormData.contact)}" oninput="saveDsFormData()"/>
     </div>
     <div class="form-group">
       <label class="form-label">備註</label>
-      <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:80px">${esc(S._dsFormData.note)}</textarea>
+      <textarea id="dsNote" class="inp" placeholder="特殊需求或說明（選填）" style="min-height:80px" oninput="saveDsFormData()">${esc(S._dsFormData.note)}</textarea>
     </div>
 
     <button onclick="submitDesign()" ${S.designSubmitting?'disabled':''} style="width:100%;padding:.72rem;border-radius:.7rem;font-weight:900;font-size:.95rem;background:linear-gradient(135deg,#B47FFF,#7B2FBE);color:#fff;border:none;cursor:pointer;opacity:${S.designSubmitting?'.6':'1'};box-shadow:0 0 22px rgba(180,127,255,.28)">
@@ -1164,10 +1188,17 @@ function togglePwVis(){
   inp.type=inp.type==='password'?'text':'password';
   if(btn)btn.textContent=inp.type==='password'?'👁':'🙈';
 }
+function saveDsFormData(){
+  const g=id=>document.getElementById(id)?.value?.trim()||'';
+  const pw=document.getElementById('dsGamePw')?.value||'';
+  const bindType=document.getElementById('dsBindType')?.value||'';
+  S._dsFormData={gameAccount:g('dsGameAcc'),gamePassword:pw,bindType,contact:g('dsContact'),note:g('dsNote')};
+}
 function handleBindImgChange(input){
   const file=input.files[0];
   if(!file)return;
   if(file.size>5*1024*1024){alert('圖片大小不能超過 5MB');input.value='';return;}
+  saveDsFormData();
   _dsBindImg=file;
   const reader=new FileReader();
   reader.onload=e=>{
@@ -1354,45 +1385,76 @@ function handleLogin(){
 function handleLogout(){S.isLoggedIn=false;S.currentUser=null;goHome()}
 
 /* Admin: Add / Edit form */
-function openFormAdd(){S.formOpen=true;S.formMode='add';S.formId=null;S.formError='';document.body.style.overflow='hidden';render()}
-function openFormEdit(id){S.formOpen=true;S.formMode='edit';S.formId=id;S.formError='';document.body.style.overflow='hidden';render()}
+function openFormAdd(){S.formOpen=true;S.formMode='add';S.formId=null;S.formError='';S.formImages=[{url:'',price:'',previewUrl:''}];_formImageFiles=[null];document.body.style.overflow='hidden';render()}
+function openFormEdit(id){S.formOpen=true;S.formMode='edit';S.formId=id;S.formError='';const acc=accountsData.find(a=>a.id===id);S.formImages=[{url:acc?.coverImage||'',price:String(acc?.price||''),previewUrl:''}];_formImageFiles=[null];document.body.style.overflow='hidden';render()}
 function closeForm(){S.formOpen=false;document.body.style.overflow='';render()}
+
+function saveFormImages(){
+  S.formImages.forEach((img,i)=>{
+    const u=document.getElementById('f_img_url_'+i);
+    const p=document.getElementById('f_img_price_'+i);
+    if(u)img.url=u.value.trim();
+    if(p)img.price=p.value.trim();
+  });
+}
+function addFormImage(){saveFormImages();S.formImages.push({url:'',price:'',previewUrl:''});_formImageFiles.push(null);render()}
+function removeFormImage(i){saveFormImages();if(S.formImages.length<=1)return;S.formImages.splice(i,1);_formImageFiles.splice(i,1);render()}
+function handleFormImageFile(input,i){
+  const file=input.files[0];if(!file)return;
+  if(file.size>5*1024*1024){alert('圖片大小不能超過 5MB');input.value='';return;}
+  saveFormImages();
+  _formImageFiles[i]=file;
+  const reader=new FileReader();
+  reader.onload=e=>{S.formImages[i].previewUrl=e.target.result;S.formImages[i].url=e.target.result;render();};
+  reader.readAsDataURL(file);
+}
 
 function submitForm(){
   const g=id=>document.getElementById(id)?.value?.trim()||'';
-  const title=g('f_title'),price=parseInt(g('f_price')||'0'),rank=g('f_rank'),skinCount=parseInt(g('f_skinCount')||'0'),cover=g('f_cover');
+  const isEdit=S.formMode==='edit';
+  const title=g('f_title'),rank=g('f_rank'),skinCount=parseInt(g('f_skinCount')||'0');
   if(!title){S.formError='請填寫帳號標題';render();return}
-  if(!price||price<1){S.formError='請填寫有效的售價';render();return}
   if(!skinCount&&skinCount!==0){S.formError='請填寫造型數';render();return}
-  if(!cover){S.formError='請填寫封面圖片網址';render();return}
 
-  const imagesRaw=g('f_images');
-  const images=imagesRaw?imagesRaw.split('\n').map(s=>s.trim()).filter(Boolean):[cover];
-  if(!images.includes(cover))images.unshift(cover);
-  const tags=[];
-
-  const data={
-    title,price,rank,
+  const baseData={
+    title,rank,
     rankClass:rankClass(rank),
     heroCount:parseInt(g('f_heroCount')||'0'),
     skinCount,
     winRate:g('f_winRate')||'-',
     matches:parseInt(g('f_matches')||'0'),
-    coverImage:cover,
-    images,
-    tags,
+    tags:[],
     isNew:document.getElementById('f_isNew')?.checked||false,
     sold:document.getElementById('f_sold')?.checked||false,
     contact:{},
     sellerId:S.currentUser?.id||'demo',
   };
 
-  if(S.formMode==='add'){
-    accountsData.push({...data,id:nextId(),views:0});
-  } else {
+  if(isEdit){
+    // Edit mode: use f_price, f_cover, f_images as before
+    const price=parseInt(g('f_price')||'0');
+    const cover=g('f_cover');
+    if(!price||price<1){S.formError='請填寫有效的售價';render();return}
+    if(!cover){S.formError='請填寫封面圖片網址';render();return}
+    const imagesRaw=g('f_images');
+    const images=imagesRaw?imagesRaw.split('\n').map(s=>s.trim()).filter(Boolean):[cover];
+    if(!images.includes(cover))images.unshift(cover);
     const idx=accountsData.findIndex(a=>a.id===S.formId);
-    if(idx!==-1) accountsData[idx]={...accountsData[idx],...data};
+    if(idx!==-1) accountsData[idx]={...accountsData[idx],...baseData,price,coverImage:cover,images};
+  } else {
+    // Add mode: batch — read dynamic image+price rows
+    saveFormImages();
+    const validRows=S.formImages.filter(img=>img.url&&img.price&&parseInt(img.price)>0);
+    if(validRows.length===0){S.formError='請至少填寫一張圖片和售價';render();return}
+    const invalidPrice=S.formImages.some(img=>img.url&&(!img.price||parseInt(img.price)<1));
+    if(invalidPrice){S.formError='每張圖片都必須填寫有效的售價';render();return}
+    validRows.forEach(row=>{
+      const price=parseInt(row.price);
+      const cover=row.url;
+      accountsData.push({...baseData,id:nextId(),price,coverImage:cover,images:[cover],views:0});
+    });
   }
+
   saveAccounts();
   S.formOpen=false;S.formError='';document.body.style.overflow='';render();
 }
