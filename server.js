@@ -369,7 +369,7 @@ function writeSubmissions(data) {
 
 
 /* POST /api/submissions  — public, customer submits */
-app.post('/api/submissions', (req, res) => {
+app.post('/api/submissions', upload.single('bindImg'), (req, res) => {
   const { type, gameAccount, gamePassword, bindType, contact, note } = req.body;
   if (!type || !contact) return res.status(400).json({ error: '缺少必填欄位' });
 
@@ -400,6 +400,7 @@ app.post('/api/submissions', (req, res) => {
     bindType:     String(bindType || '').slice(0, LIMITS.bindType),
     contact:      String(contact).slice(0, LIMITS.contact),
     note:         String(note || '').slice(0, LIMITS.note),
+    bindImg:      req.file ? req.file.filename : null,
     createdAt:    new Date().toISOString(),
     done:         false,
   };
