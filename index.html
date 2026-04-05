@@ -1141,7 +1141,7 @@ function trackEvent(type, extra){
 function goHome(){document.body.style.overflow='';history.pushState(null,'','#/');S.page='list';S.accountId=null;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;window.scrollTo({top:0,behavior:'smooth'});render()}
 function goDetail(id){document.body.style.overflow='';history.pushState(null,'',`#/account/${id}`);S.page='detail';S.accountId=id;S.activeImg=0;S.lightboxOpen=false;S.contactOpen=false;render();window.scrollTo({top:0,behavior:'instant'});fetch(`/api/accounts/${id}/view`,{method:'POST'}).catch(()=>{});trackEvent('account_view',{id});}
 function goAdmin(){document.body.style.overflow='';history.pushState(null,'','#/admin');S.page='admin';window.scrollTo({top:0,behavior:'smooth'});render()}
-function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;S.designConfirmOpen=false;S.designOrderNo='';S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render();trackEvent('design_click');}
+function goDesign(){document.body.style.overflow='';history.pushState(null,'','#/design');S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;S.designConfirmOpen=false;S.designOrderNo='';clearDsFormData();_dsBindImg=null;window.scrollTo({top:0,behavior:'smooth'});render();trackEvent('design_click');}
 
 /* List */
 function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
@@ -1192,7 +1192,16 @@ function saveDsFormData(){
   const g=id=>document.getElementById(id)?.value?.trim()||'';
   const pw=document.getElementById('dsGamePw')?.value||'';
   const bindType=document.getElementById('dsBindType')?.value||'';
-  S._dsFormData={gameAccount:g('dsGameAcc'),gamePassword:pw,bindType,contact:g('dsContact'),note:g('dsNote')};
+  const d={gameAccount:g('dsGameAcc'),gamePassword:pw,bindType,contact:g('dsContact'),note:g('dsNote')};
+  S._dsFormData=d;
+  try{sessionStorage.setItem('_dsForm',JSON.stringify(d));}catch(e){}
+}
+function restoreDsFormData(){
+  try{const s=sessionStorage.getItem('_dsForm');if(s)S._dsFormData=JSON.parse(s);}catch(e){}
+}
+function clearDsFormData(){
+  S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};
+  try{sessionStorage.removeItem('_dsForm');}catch(e){}
 }
 function handleBindImgChange(input){
   const file=input.files[0];
@@ -1218,7 +1227,15 @@ function submitDesign(){
   const bindType=document.getElementById('dsBindType')?.value||'';
   // Save form state before any render so values survive re-render
   S._dsFormData={gameAccount,gamePassword,bindType,contact,note};
-  if(!gameAccount||!gamePassword||!bindType||!contact){S.designError='請填寫所有必填欄位';render();return}
+  if(!gameAccount||!gamePassword||!bindType||!contact){
+    const m=[];
+    if(!gameAccount)m.push('遊戲帳號');
+    if(!gamePassword)m.push('遊戲密碼');
+    if(!bindType)m.push('綁定方式');
+    if(!contact)m.push('聯繫方式');
+    S.designError='請填寫以下必填欄位：'+m.join('、');
+    render();return;
+  }
   S.designError='';
   S.designConfirmOpen=true;
   render();
@@ -1243,7 +1260,7 @@ async function doSubmitDesign(){
     if(res.ok){
       const d=await res.json().catch(()=>({}));
       S.designStep='done';S.designOrderNo=d.orderNo||'';
-      S._dsFormData={gameAccount:'',gamePassword:'',bindType:'',contact:'',note:''};_dsBindImg=null;
+      clearDsFormData();_dsBindImg=null;
     }else{const d=await res.json().catch(()=>({}));S.designError=d.error||'送出失敗，請稍後再試';}
   }catch(e){S.designError='連線失敗，請稍後再試';}
   S.designSubmitting=false;render();
@@ -1481,7 +1498,7 @@ window.addEventListener('popstate',()=>{
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;S.activeImg=0;}}
   else if(h==='#/admin'){S.page='admin';}
-  else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;_dsBindImg=null;}
+  else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';S.designSubmitting=false;_dsBindImg=null;restoreDsFormData();}
   else{S.page='list';S.accountId=null;}
   render();
   window.scrollTo({top:0,behavior:'instant'});
@@ -1491,7 +1508,7 @@ window.addEventListener('popstate',()=>{
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;}}
   else if(h==='#/admin'){S.page='admin';}
-  else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';}
+  else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';restoreDsFormData();}
   // Load per-service maintenance flags
   try {
     const mr = await fetch('/api/maintenance');
