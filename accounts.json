@@ -4,7 +4,7 @@
     "price": 999,
     "imgNAME": "",
     "imgNAMEs": [],
-    "views": 21
+    "views": 23
   },
   {
     "id": 2,
@@ -43,6 +43,20 @@
   },
   {
     "id": 7,
+    "price": 100,
+    "imgNAME": "",
+    "imgNAMEs": [],
+    "views": 0
+  },
+  {
+    "id": 8,
+    "price": 500,
+    "imgNAME": "",
+    "imgNAMEs": [],
+    "views": 0
+  },
+  {
+    "id": 9,
     "price": 100,
     "imgNAME": "",
     "imgNAMEs": [],

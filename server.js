@@ -712,6 +712,11 @@ app.delete('/api/bug-reports/:id', requireAuth, (req, res) => {
   });
 });
 
+/* ── 404 handler — clean response for unknown routes ── */
+app.use((req, res) => {
+  res.status(404).json({ error: '找不到該頁面' });
+});
+
 /* ── Global error handler — prevent stack trace leakage ── */
 app.use((err, req, res, _next) => {
   console.error(`${new Date().toISOString()} ERROR ${req.method} ${req.path}:`, err.message);
