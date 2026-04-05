@@ -320,6 +320,32 @@
   </div>
 </div>
 
+<!-- ══ BATCH EDIT MODAL ══ -->
+<div id="batchModal" class="modal-backdrop" style="display:none" onclick="closeBatchModal()">
+  <div class="modal-box" style="max-width:480px;max-height:90vh;display:flex;flex-direction:column" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-shrink:0">
+      <h2 style="font-size:1rem;font-weight:800">批量編輯價格 <span id="batchCount" style="font-size:.8rem;color:rgba(255,255,255,.4)"></span></h2>
+      <button onclick="closeBatchModal()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">✕</button>
+    </div>
+    <div id="batchList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:1rem;padding-right:.3rem"></div>
+    <div id="batchError" style="display:none;color:#f87171;font-size:.78rem;margin-top:.75rem;padding:.5rem .8rem;background:rgba(239,68,68,.1);border-radius:.5rem;border:1px solid rgba(239,68,68,.25);flex-shrink:0"></div>
+    <div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:1rem;flex-shrink:0">
+      <button class="btn btn-outline" onclick="closeBatchModal()">取消</button>
+      <button class="btn btn-gold" id="batchSubmitBtn" onclick="submitBatchEdit()">
+        <span id="batchSubmitText">儲存全部</span>
+        <span id="batchSubmitLoading" style="display:none">處理中…</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FLOATING SELECTION BAR ══ -->
+<div id="selectionBar" style="display:none;position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:60;background:rgba(13,13,38,.95);border:1px solid rgba(255,215,0,.35);border-radius:.9rem;padding:.6rem 1.2rem;backdrop-filter:blur(14px);box-shadow:0 12px 40px rgba(0,0,0,.6);display:none;align-items:center;gap:.8rem">
+  <span style="font-size:.82rem;color:rgba(255,255,255,.6)">已選取 <span id="selBarCount" style="color:#FFD700;font-weight:900">0</span> 筆</span>
+  <button class="btn btn-gold" style="font-size:.8rem;padding:.4rem .9rem" onclick="openBatchModal()">批量編輯價格</button>
+  <button class="btn btn-outline" style="font-size:.8rem;padding:.4rem .9rem" onclick="clearSelection()">取消選取</button>
+</div>
+
 <!-- ══ TOAST ══ -->
 <div id="toast">
   <div id="toastInner" style="background:#1a1a3e;border:1px solid rgba(255,215,0,.2);border-radius:.7rem;padding:.6rem 1.1rem;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:.5rem;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div>
@@ -335,6 +361,7 @@ let deleteId    = null;
 let searchQuery = '';
 let currentPage = 1;
 let selectedFiles = [];   // new image files queued for upload
+let selectedIds   = new Set(); // batch selection
 
 /* ══ MAINTENANCE ══ */
 const MAINT_KEYS = { spotAccount: '現貨', sellAccount: '賣帳號', design: '製圖' };
@@ -451,7 +478,8 @@ function renderGrid() {
   list.innerHTML = `
     <div style="background:#0D0D26;border:1px solid rgba(255,255,255,.08);border-radius:.9rem;overflow:hidden">
       <!-- Table header -->
-      <div style="display:grid;grid-template-columns:3rem 4.5rem auto 4rem 4rem 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.07);text-transform:uppercase;letter-spacing:.04em">
+      <div style="display:grid;grid-template-columns:2.2rem 3rem 4.5rem auto 4rem 4rem 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.07);text-transform:uppercase;letter-spacing:.04em">
+        <span style="display:flex;align-items:center;justify-content:center"><input type="checkbox" onchange="toggleSelectAll(this.checked)" ${selectedIds.size>0&&filtered.length>0&&page.every(a=>selectedIds.has(a.id))?'checked':''} style="accent-color:#FFD700;width:15px;height:15px;cursor:pointer"/></span>
         <span>ID</span>
         <span>圖片</span>
         <span>售價</span>
@@ -464,8 +492,10 @@ function renderGrid() {
           ? `/acc_img/${acc.imgNAME}`
           : 'https://placehold.co/120x90/0d0d26/555?text=No+Img';
         const rowBg = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.018)';
+        const isSel = selectedIds.has(acc.id);
         return `
-        <div style="display:grid;grid-template-columns:3rem 4.5rem auto 4rem 4rem 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;background:${rowBg};border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s" onmouseover="this.style.background='rgba(255,215,0,.04)'" onmouseout="this.style.background='${rowBg}'">
+        <div style="display:grid;grid-template-columns:2.2rem 3rem 4.5rem auto 4rem 4rem 9rem;gap:.5rem;align-items:center;padding:.55rem .9rem;background:${isSel?'rgba(255,215,0,.06)':rowBg};border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s" onmouseover="this.style.background='rgba(255,215,0,.04)'" onmouseout="this.style.background='${isSel?'rgba(255,215,0,.06)':rowBg}'">
+          <span style="display:flex;align-items:center;justify-content:center"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSelect(${acc.id},this.checked)" style="accent-color:#FFD700;width:15px;height:15px;cursor:pointer"/></span>
           <span style="font-size:.72rem;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums">${acc.id}</span>
           <img src="${escH(imgSrc)}" style="width:4.5rem;height:3.2rem;object-fit:cover;border-radius:.4rem;border:1px solid rgba(255,255,255,.08);display:block" onerror="this.src='https://placehold.co/120x90/0d0d26/555?text=No+Img'"/>
           <div style="font-size:.88rem;font-weight:900;color:#FFD700;white-space:nowrap">NT$&nbsp;${Number(acc.price).toLocaleString('zh-TW')}</div>
@@ -721,6 +751,116 @@ async function confirmDeleteAll() {
   } finally {
     btn.disabled = false;
     btn.textContent = '全部刪除';
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   BATCH SELECT & EDIT
+══════════════════════════════════════════════════════ */
+function toggleSelect(id, checked) {
+  if (checked) selectedIds.add(id); else selectedIds.delete(id);
+  updateSelectionBar();
+  renderGrid();
+}
+function toggleSelectAll(checked) {
+  const filtered = getFiltered();
+  const start = (currentPage - 1) * PER_PAGE;
+  const page = filtered.slice(start, start + PER_PAGE);
+  for (const acc of page) {
+    if (checked) selectedIds.add(acc.id); else selectedIds.delete(acc.id);
+  }
+  updateSelectionBar();
+  renderGrid();
+}
+function clearSelection() {
+  selectedIds.clear();
+  updateSelectionBar();
+  renderGrid();
+}
+function updateSelectionBar() {
+  const bar = document.getElementById('selectionBar');
+  if (selectedIds.size > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('selBarCount').textContent = selectedIds.size;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function openBatchModal() {
+  const selected = accounts.filter(a => selectedIds.has(a.id));
+  if (selected.length === 0) return;
+  document.getElementById('batchCount').textContent = `(${selected.length} 筆)`;
+  const list = document.getElementById('batchList');
+  list.innerHTML = selected.map(acc => {
+    const imgSrc = acc.imgNAME ? `/acc_img/${acc.imgNAME}` : 'https://placehold.co/300x200/0d0d26/555?text=No+Img';
+    return `
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:.75rem;overflow:hidden" data-batch-id="${acc.id}">
+      <img src="${escH(imgSrc)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block" onerror="this.src='https://placehold.co/300x200/0d0d26/555?text=No+Img'"/>
+      <div style="padding:.75rem .85rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+          <span style="font-size:.7rem;color:rgba(255,255,255,.35)">ID: ${acc.id}</span>
+          <span style="font-size:.7rem;color:rgba(255,255,255,.25)">|</span>
+          <span style="font-size:.7rem;color:rgba(255,255,255,.35)">原價: NT$ ${Number(acc.price).toLocaleString('zh-TW')}</span>
+        </div>
+        <div style="position:relative">
+          <span style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.35);font-size:.82rem;pointer-events:none">NT$</span>
+          <input class="inp batch-price-input" type="number" value="${acc.price}" min="1" data-id="${acc.id}" style="padding-left:2.6rem;font-size:.9rem;font-weight:700"/>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('batchError').style.display = 'none';
+  document.getElementById('batchModal').style.display = 'flex';
+}
+function closeBatchModal() {
+  document.getElementById('batchModal').style.display = 'none';
+}
+async function submitBatchEdit() {
+  const inputs = document.querySelectorAll('.batch-price-input');
+  const updates = [];
+  for (const inp of inputs) {
+    const id = Number(inp.dataset.id);
+    const price = Number(inp.value);
+    if (!price || price <= 0) {
+      document.getElementById('batchError').textContent = `ID ${id} 的價格無效`;
+      document.getElementById('batchError').style.display = 'block';
+      inp.focus();
+      return;
+    }
+    updates.push({ id, price });
+  }
+  const btn = document.getElementById('batchSubmitBtn');
+  btn.disabled = true;
+  document.getElementById('batchSubmitText').style.display = 'none';
+  document.getElementById('batchSubmitLoading').style.display = 'inline';
+  try {
+    const res = await fetch('/api/accounts/batch', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('batchError').textContent = data.error || '更新失敗';
+      document.getElementById('batchError').style.display = 'block';
+      return;
+    }
+    // Update local state
+    for (const updated of data.accounts) {
+      const idx = accounts.findIndex(a => a.id === updated.id);
+      if (idx !== -1) accounts[idx] = updated;
+    }
+    closeBatchModal();
+    clearSelection();
+    renderGrid();
+    showToast(`✅ 已批量更新 ${data.updated} 筆價格`, 'success');
+  } catch(e) {
+    document.getElementById('batchError').textContent = '連線錯誤，請確認伺服器已啟動';
+    document.getElementById('batchError').style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    document.getElementById('batchSubmitText').style.display = 'inline';
+    document.getElementById('batchSubmitLoading').style.display = 'none';
   }
 }
 

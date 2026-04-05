@@ -299,6 +299,25 @@ app.put('/api/accounts/:id', requireAuth, upload.array('images', 10), (req, res)
   res.json(accounts[idx]);
 });
 
+/* PATCH /api/accounts/batch  — batch update prices */
+app.patch('/api/accounts/batch', requireAuth, (req, res) => {
+  const { updates } = req.body; // [{ id, price }, ...]
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return res.status(400).json({ error: '請提供要更新的帳號資料' });
+  }
+  const accounts = readAccounts();
+  const results = [];
+  for (const { id, price } of updates) {
+    const idx = accounts.findIndex(a => a.id === id);
+    if (idx === -1) continue;
+    if (!price || Number(price) <= 0) continue;
+    accounts[idx].price = Number(price);
+    results.push(accounts[idx]);
+  }
+  writeAccounts(accounts);
+  res.json({ ok: true, updated: results.length, accounts: results });
+});
+
 /* DELETE /api/accounts  — delete all accounts at once */
 app.delete('/api/accounts', requireAuth, (req, res) => {
   const accounts = readAccounts();
