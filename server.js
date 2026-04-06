@@ -15,8 +15,37 @@ const MAINTENANCE_FILE = path.join(DATA_DIR, 'maintenance.json');
 const IMG_COUNTER_FILE = path.join(DATA_DIR, 'imgCounter.json');
 const BUG_REPORTS_FILE = path.join(DATA_DIR, 'bug_reports.json');
 const ANALYTICS_FILE   = path.join(DATA_DIR, 'analytics.json');
+const SETTINGS_FILE    = path.join(DATA_DIR, 'settings.json');
 const ANALYTICS_MAX    = 20000;
 const IMG_DIR          = path.join(DATA_DIR, 'acc_img');
+
+/* ── Default site settings ── */
+const DEFAULT_SETTINGS = {
+  discountEnabled: true,
+  discountPerPage: 3,
+  discountMinPct: 10,
+  discountMaxPct: 30,
+  categories: [
+    { label: '小資族', min: 0, max: 500, color: '#4ade80', emoji: '🌱' },
+    { label: '進階玩家', min: 501, max: 1500, color: '#63B3ED', emoji: '⚔️' },
+    { label: '收藏家', min: 1501, max: 3000, color: '#B47FFF', emoji: '👑' },
+    { label: '土豪專區', min: 3001, max: 9999999, color: '#FFD700', emoji: '💎' },
+  ],
+  messengerLink: 'https://m.me/hsieh1010',
+  viewerBase: 20,
+  viewerRange: 15,
+  totalViewsMultiplier: 3.2,
+};
+
+function readSettings() {
+  try {
+    const s = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+    return { ...DEFAULT_SETTINGS, ...s };
+  } catch { return { ...DEFAULT_SETTINGS }; }
+}
+function writeSettings(data) {
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
 
 /* ── Password encryption for submissions ── */
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
@@ -710,6 +739,29 @@ app.delete('/api/bug-reports/:id', requireAuth, (req, res) => {
     writeBugReports(reports);
     res.json({ ok: true });
   });
+});
+
+/* ══════════════════════════════════════════════════════════
+   SETTINGS API
+══════════════════════════════════════════════════════════ */
+
+/* GET /api/settings — public (frontend needs discount/category/messenger config) */
+app.get('/api/settings', (req, res) => {
+  res.json(readSettings());
+});
+
+/* POST /api/settings — auth required */
+app.post('/api/settings', requireAuth, (req, res) => {
+  const current = readSettings();
+  const updates = req.body;
+  // Only allow known keys
+  const allowed = ['discountEnabled','discountPerPage','discountMinPct','discountMaxPct',
+    'categories','messengerLink','viewerBase','viewerRange','totalViewsMultiplier'];
+  for (const key of allowed) {
+    if (updates[key] !== undefined) current[key] = updates[key];
+  }
+  writeSettings(current);
+  res.json(current);
 });
 
 /* ── 404 handler — clean response for unknown routes ── */

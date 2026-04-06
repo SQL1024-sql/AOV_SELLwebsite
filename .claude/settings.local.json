@@ -74,7 +74,13 @@
       "Bash(curl -s -u admin:testpass123 -X POST http://localhost:3000/api/accounts -F 'price=<script>alert\\(1\\)</script>')",
       "Bash(curl -s -u admin:testpass123 -X POST http://localhost:3000/api/accounts -F price=99999999999999999999)",
       "Bash(curl -s -u admin:testpass123 -X POST http://localhost:3000/api/accounts -F price=100 -F isAdmin=true -F '__proto__[isAdmin]=true')",
-      "Bash(ADMIN_PASS=test123 node server.js)"
+      "Bash(ADMIN_PASS=test123 node server.js)",
+      "Bash(node -c server.js)",
+      "Bash(node -e ':*)",
+      "Bash(curl -s http://localhost:3000/api/settings)",
+      "Bash(node -e \"const d=[];process.stdin.on\\('data',c=>d.push\\(c\\)\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(Buffer.concat\\(d\\)\\);console.log\\('Settings loaded:', Object.keys\\(j\\).join\\(', '\\)\\);console.log\\('Categories:', j.categories?.length\\)}\\)\")",
+      "Bash(curl -s -u admin:test123 -X POST http://localhost:3000/api/settings -H 'Content-Type: application/json' -d '{\"viewerBase\":25}')",
+      "Bash(node -e \"const d=[];process.stdin.on\\('data',c=>d.push\\(c\\)\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(Buffer.concat\\(d\\)\\);console.log\\('viewerBase:', j.viewerBase\\)}\\)\")"
     ],
     "additionalDirectories": [
       "/tmp"

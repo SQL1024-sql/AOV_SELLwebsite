@@ -107,6 +107,8 @@
     <button id="tabOrders" onclick="switchTab('orders')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">🎨 製圖訂單 <span id="orderBadge" style="display:none;background:#f87171;color:#fff;border-radius:999px;padding:.05rem .45rem;font-size:.68rem;margin-left:.3rem">0</span></button>
     <button id="tabBugs" onclick="switchTab('bugs')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">🐛 Bug 回報 <span id="bugBadge" style="display:none;background:#f87171;color:#fff;border-radius:999px;padding:.05rem .45rem;font-size:.68rem;margin-left:.3rem">0</span></button>
     <button id="tabStats" onclick="switchTab('stats')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">📊 數據統計</button>
+    <button id="tabDaily" onclick="switchTab('daily')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">🚀 每日上架</button>
+    <button id="tabSettings" onclick="switchTab('settings')" style="padding:.6rem 1.2rem;font-size:.88rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;transition:all .18s">⚙️ 網站設定</button>
   </div>
 
   <!-- ═══ LISTINGS TAB ═══ -->
@@ -240,6 +242,137 @@
     </div>
   </div>
 
+  <!-- ═══ DAILY UPLOAD TAB ═══ -->
+  <div id="sectionDaily" style="display:none">
+    <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.15);border-radius:.8rem;padding:.9rem 1rem">
+        <div style="font-size:1.3rem;margin-bottom:.3rem">1️⃣</div>
+        <div style="font-size:.82rem;font-weight:700;color:#FFD700">選擇圖片</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.2rem">一次選全部當天圖片</div>
+      </div>
+      <div style="flex:1;min-width:180px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.15);border-radius:.8rem;padding:.9rem 1rem">
+        <div style="font-size:1.3rem;margin-bottom:.3rem">2️⃣</div>
+        <div style="font-size:.82rem;font-weight:700;color:#FFD700">填寫價格</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.2rem">對照圖片輸入每張售價</div>
+      </div>
+      <div style="flex:1;min-width:180px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.15);border-radius:.8rem;padding:.9rem 1rem">
+        <div style="font-size:1.3rem;margin-bottom:.3rem">3️⃣</div>
+        <div style="font-size:.82rem;font-weight:700;color:#FFD700">一鍵上傳</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.2rem">清空舊資料並全部上傳</div>
+      </div>
+    </div>
+
+    <div id="dailyDropZone" style="border:2px dashed rgba(255,215,0,.25);border-radius:1rem;padding:3rem 2rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s" onclick="document.getElementById('dailyFileInput').click()"
+         onmouseover="this.style.borderColor='rgba(255,215,0,.6)';this.style.background='rgba(255,215,0,.04)'"
+         onmouseout="this.style.borderColor='rgba(255,215,0,.25)';this.style.background='none'">
+      <input type="file" id="dailyFileInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="display:none" onchange="dailyOnFiles(event)"/>
+      <div style="font-size:2.5rem;margin-bottom:.75rem">🖼️</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.35rem">點擊或拖曳圖片到這裡</div>
+      <div style="font-size:.8rem;color:rgba(255,255,255,.35)">支援 JPG、PNG、GIF、WebP，可一次選多張</div>
+    </div>
+
+    <div id="dailyListSection" style="display:none;margin-top:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <div style="font-weight:800;font-size:1rem">
+          共 <span id="dailyTotalCount" style="color:#FFD700">0</span> 張圖片
+          <span id="dailyMissingHint" style="font-size:.75rem;color:#f87171;margin-left:.5rem;display:none">⚠️ 有圖片未填價格</span>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn btn-outline" onclick="document.getElementById('dailyFileInput').click()" style="font-size:.78rem">＋ 追加圖片</button>
+          <button class="btn btn-outline" onclick="dailyClearList()" style="font-size:.78rem;color:#f87171;border-color:rgba(239,68,68,.3)">✕ 清除全部</button>
+        </div>
+      </div>
+      <div id="dailyImgGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.85rem"></div>
+      <div style="margin-top:1.5rem;padding:1.25rem;background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.15);border-radius:.9rem">
+        <div style="font-size:.82rem;color:rgba(255,255,255,.55);margin-bottom:.75rem">
+          ⚠️ 點擊上傳後會 <strong style="color:#f87171">清空網站所有舊帳號</strong>，再上傳這批新圖片。
+        </div>
+        <button id="dailyUploadBtn" class="btn btn-gold" onclick="dailyStartUpload()" style="width:100%;font-size:.95rem;padding:.75rem">
+          🚀 清空舊資料並上傳
+        </button>
+      </div>
+    </div>
+
+    <div id="dailyProgressSection" style="display:none;margin-top:1.5rem">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.4rem">
+        <span id="dailyProgressText" style="color:rgba(255,255,255,.6)">準備中…</span>
+        <span id="dailyProgressNum" style="color:#FFD700;font-weight:700">0 / 0</span>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:1rem">
+        <div id="dailyProgressBar" style="width:0%;height:6px;border-radius:3px;background:linear-gradient(90deg,#FFD700,#FFA500);transition:width .3s"></div>
+      </div>
+      <div id="dailyLogList" style="display:flex;flex-direction:column;gap:.4rem;max-height:320px;overflow-y:auto"></div>
+      <div id="dailyDoneMsg" style="display:none;text-align:center;padding:1.5rem">
+        <div style="font-size:1rem;font-weight:800;color:#4ade80;margin-bottom:.5rem">🎉 上傳完成！</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SETTINGS TAB ═══ -->
+  <div id="sectionSettings" style="display:none">
+    <h1 style="font-size:1.35rem;font-weight:900;margin-bottom:1rem">網站設定</h1>
+
+    <!-- Messenger link -->
+    <div class="glass" style="padding:1rem 1.2rem;border-radius:.9rem;margin-bottom:1rem">
+      <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.75rem">💬 Messenger 連結</div>
+      <input id="setMessenger" class="inp" placeholder="https://m.me/yourpage" style="margin-bottom:.5rem"/>
+    </div>
+
+    <!-- Viewer settings -->
+    <div class="glass" style="padding:1rem 1.2rem;border-radius:.9rem;margin-bottom:1rem">
+      <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.75rem">👀 瀏覽數設定</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem">
+        <div>
+          <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:.3rem">瀏覽中基數</label>
+          <input id="setViewerBase" class="inp" type="number" min="1" placeholder="20"/>
+        </div>
+        <div>
+          <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:.3rem">瀏覽中浮動</label>
+          <input id="setViewerRange" class="inp" type="number" min="0" placeholder="15"/>
+        </div>
+        <div>
+          <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:.3rem">總瀏覽量倍率</label>
+          <input id="setViewsMulti" class="inp" type="number" min="1" step="0.1" placeholder="3.2"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discount settings -->
+    <div class="glass" style="padding:1rem 1.2rem;border-radius:.9rem;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
+        <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55)">🏷️ 假打折設定</div>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer">
+          <input id="setDiscountEnabled" type="checkbox" style="accent-color:#FFD700;width:16px;height:16px"/>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.4)">啟用</span>
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem">
+        <div>
+          <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:.3rem">每頁打折數量</label>
+          <input id="setDiscountPerPage" class="inp" type="number" min="0" placeholder="3"/>
+        </div>
+        <div>
+          <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:.3rem">加價最低 %</label>
+          <input id="setDiscountMinPct" class="inp" type="number" min="1" placeholder="10"/>
+        </div>
+        <div>
+          <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:.3rem">加價最高 %</label>
+          <input id="setDiscountMaxPct" class="inp" type="number" min="1" placeholder="30"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price categories -->
+    <div class="glass" style="padding:1rem 1.2rem;border-radius:.9rem;margin-bottom:1rem">
+      <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.75rem">🏆 價格分類</div>
+      <div id="categoriesList"></div>
+      <button class="btn btn-outline" onclick="addCategory()" style="font-size:.78rem;margin-top:.5rem">＋ 新增分類</button>
+    </div>
+
+    <button class="btn btn-gold" onclick="saveSettings()" style="width:100%;padding:.75rem;font-size:.95rem">💾 儲存設定</button>
+    <div id="settingsMsg" style="display:none;margin-top:.75rem;text-align:center;font-size:.82rem;color:#4ade80"></div>
+  </div>
+
 </main>
 
 <!-- ══ ADD / EDIT MODAL ══ -->
@@ -251,19 +384,19 @@
     </div>
 
     <form id="postForm" onsubmit="handleSubmit(event)">
-      <!-- Price -->
-      <div style="margin-bottom:.9rem">
+      <!-- Single price (edit mode) -->
+      <div id="singlePriceWrap" style="margin-bottom:.9rem">
         <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">售價 (NT$) <span style="color:#f87171">*</span></label>
         <div style="position:relative">
           <span style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.35);font-size:.85rem;pointer-events:none">NT$</span>
-          <input id="fPrice" class="inp" type="number" placeholder="0" min="1" required style="padding-left:2.8rem"/>
+          <input id="fPrice" class="inp" type="number" placeholder="0" min="1" style="padding-left:2.8rem"/>
         </div>
       </div>
 
       <!-- Image upload -->
       <div style="margin-bottom:1.1rem">
-        <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">圖片（可一次選多張）</label>
-        <!-- Thumbnail strip -->
+        <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">圖片（可一次選多張，每張可設不同價格）</label>
+        <!-- Thumbnail strip with per-image pricing -->
         <div id="imgThumbList" style="display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:.45rem"></div>
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fImages').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
           <input type="file" id="fImages" accept="image/jpeg,image/png,image/gif,image/webp" multiple onchange="onFileSelect(event)"/>
@@ -413,10 +546,7 @@ const PER_PAGE  = 30;
 /* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
-async function init() {
-  await Promise.all([loadAccounts(), loadMaintenance(), loadOrders(), loadBugReports(), loadAnalytics()]);
-  renderGrid();
-}
+// init moved to bottom of script
 
 /* ══════════════════════════════════════════════════════
    API HELPERS
@@ -444,10 +574,10 @@ function getFiltered() {
 }
 
 function updateStatsBar() {
-  const totalViews = accounts.reduce((s, a) => s + (a.views || 0), 0);
+  const totalAnalyticsClicks = analyticsRaw.length;
   const el = id => document.getElementById(id);
   if (el('statPosts'))   el('statPosts').textContent  = accounts.length;
-  if (el('statViews'))   el('statViews').textContent  = totalViews.toLocaleString('zh-TW');
+  if (el('statViews'))   el('statViews').textContent  = totalAnalyticsClicks.toLocaleString('zh-TW');
   if (el('statOrders'))  el('statOrders').textContent = orders.length;
   if (el('statPending')) el('statPending').textContent = orders.filter(o => !o.done).length;
 }
@@ -622,24 +752,46 @@ function removeFile(idx) {
   renderThumbs();
 }
 let _thumbUrls = []; // track ObjectURLs to revoke
+let filePrices = []; // per-image prices for add mode
 function renderThumbs() {
   const list = document.getElementById('imgThumbList');
   if (!list) return;
   // Revoke old ObjectURLs to prevent memory leak
   _thumbUrls.forEach(u => URL.revokeObjectURL(u));
   _thumbUrls = [];
+
+  // Show/hide single price field based on mode
+  const singlePriceWrap = document.getElementById('singlePriceWrap');
+  if (singlePriceWrap) {
+    // In add mode with multiple images: hide single price, show per-image prices
+    // In edit mode or single image: show single price
+    if (editId === null && selectedFiles.length > 1) {
+      singlePriceWrap.style.display = 'none';
+    } else {
+      singlePriceWrap.style.display = 'block';
+    }
+  }
+
+  // Sync filePrices array length
+  while (filePrices.length < selectedFiles.length) filePrices.push('');
+  filePrices.length = selectedFiles.length;
+
+  const showPerPrice = editId === null && selectedFiles.length > 1;
+
   list.innerHTML = selectedFiles.map((f, i) => {
     const url = URL.createObjectURL(f);
     _thumbUrls.push(url);
-    return `<div style="position:relative;display:inline-block;vertical-align:top">
-      <img src="${url}" style="width:72px;height:54px;object-fit:cover;border-radius:.4rem;border:1px solid rgba(255,215,0,.3);display:block"/>
+    return `<div style="position:relative;display:inline-block;vertical-align:top;${showPerPrice ? 'width:120px' : ''}">
+      <img src="${url}" style="width:${showPerPrice ? '120px' : '72px'};height:${showPerPrice ? '90px' : '54px'};object-fit:cover;border-radius:.4rem;border:1px solid rgba(255,215,0,.3);display:block"/>
       <button type="button" onclick="removeFile(${i})" style="position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:#f87171;border:none;cursor:pointer;font-size:9px;color:#fff;line-height:17px;text-align:center;font-weight:900;padding:0">✕</button>
-      <div style="font-size:.6rem;color:rgba(255,255,255,.3);width:72px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:.15rem">${escH(f.name)}</div>
+      <div style="font-size:.6rem;color:rgba(255,255,255,.3);width:${showPerPrice ? '120px' : '72px'};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:.15rem">${escH(f.name)}</div>
+      ${showPerPrice ? `<input type="number" min="1" placeholder="NT$" value="${escH(filePrices[i])}" oninput="filePrices[${i}]=this.value" style="width:120px;margin-top:.2rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#FFD700;outline:none;border-radius:.35rem;padding:.25rem .4rem;font-size:.75rem;font-weight:700"/>` : ''}
     </div>`;
   }).join('');
 }
 function clearImageState() {
   selectedFiles = [];
+  filePrices = [];
   const inp = document.getElementById('fImages');
   if (inp) inp.value = '';
   renderThumbs();
@@ -652,8 +804,42 @@ async function handleSubmit(e) {
   e.preventDefault();
   clearError();
 
-  const price = document.getElementById('fPrice').value.trim();
+  // Multi-image add mode: each image gets its own price and creates a separate account
+  if (editId === null && selectedFiles.length > 1) {
+    // Validate per-image prices
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const p = Number(filePrices[i]);
+      if (!filePrices[i] || !Number.isFinite(p) || p <= 0) {
+        showError(`第 ${i + 1} 張圖片未填寫有效價格`);
+        return;
+      }
+    }
+    setLoading(true);
+    let successCount = 0;
+    try {
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const fd = new FormData();
+        fd.append('price', filePrices[i]);
+        fd.append('images', selectedFiles[i]);
+        const res = await fetch('/api/accounts', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) { showError(data.error || `第 ${i + 1} 張上傳失敗`); continue; }
+        accounts.push(data);
+        successCount++;
+      }
+      closeModal();
+      renderGrid();
+      showToast(`✅ 已新增 ${successCount} 篇貼文！`, 'success');
+    } catch(err) {
+      showError('連線錯誤，請確認伺服器已啟動');
+    } finally {
+      setLoading(false);
+    }
+    return;
+  }
 
+  // Single image add or edit mode
+  const price = document.getElementById('fPrice').value.trim();
   if (!price || Number(price) <= 0) { showError('請填寫有效售價'); return; }
 
   setLoading(true);
@@ -892,11 +1078,12 @@ function showToast(msg, type = 'success') {
 let currentTab = 'listings';
 function switchTab(tab) {
   currentTab = tab;
-  document.getElementById('sectionListings').style.display = tab === 'listings' ? 'block' : 'none';
-  document.getElementById('sectionOrders').style.display   = tab === 'orders'   ? 'block' : 'none';
-  document.getElementById('sectionBugs').style.display     = tab === 'bugs'     ? 'block' : 'none';
-  document.getElementById('sectionStats').style.display    = tab === 'stats'    ? 'block' : 'none';
-  const tabs = { listings:'#FFD700', orders:'#B47FFF', bugs:'#f87171', stats:'#4ade80' };
+  const sections = ['listings','orders','bugs','stats','daily','settings'];
+  for (const s of sections) {
+    const el = document.getElementById('section' + s.charAt(0).toUpperCase() + s.slice(1));
+    if (el) el.style.display = tab === s ? 'block' : 'none';
+  }
+  const tabs = { listings:'#FFD700', orders:'#B47FFF', bugs:'#f87171', stats:'#4ade80', daily:'#FFA500', settings:'#63B3ED' };
   for (const [t, color] of Object.entries(tabs)) {
     const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
     if (!el) continue;
@@ -906,6 +1093,7 @@ function switchTab(tab) {
   if (tab === 'orders') loadOrders();
   if (tab === 'bugs')   loadBugReports();
   if (tab === 'stats')  loadAnalytics();
+  if (tab === 'settings') loadSettingsUI();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1360,6 +1548,241 @@ async function deleteBugReport(id) {
     renderBugReports();
     showToast('🗑️ 已刪除', 'info');
   } catch(e) { showToast('❌ 刪除失敗', 'error'); }
+}
+
+/* ══════════════════════════════════════════════════════
+   DAILY UPLOAD (integrated from daily.html)
+══════════════════════════════════════════════════════ */
+let dailyItems = []; // [{file, previewUrl, price}]
+
+function dailyOnFiles(e) {
+  dailyAddFiles(Array.from(e.target.files));
+  e.target.value = '';
+}
+
+function dailyAddFiles(files) {
+  const imgFiles = files.filter(f => /^image\//i.test(f.type));
+  if (!imgFiles.length) return;
+  imgFiles.forEach(f => {
+    if (dailyItems.find(i => i.file.name === f.name)) return;
+    dailyItems.push({ file: f, previewUrl: URL.createObjectURL(f), price: '' });
+  });
+  dailyRenderGrid();
+  document.getElementById('dailyDropZone').style.display = 'none';
+  document.getElementById('dailyListSection').style.display = 'block';
+}
+
+// Drag & drop for daily section
+document.addEventListener('DOMContentLoaded', () => {
+  const dz = document.getElementById('dailyDropZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='rgba(255,215,0,.6)'; dz.style.background='rgba(255,215,0,.04)'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor='rgba(255,215,0,.25)'; dz.style.background='none'; });
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor='rgba(255,215,0,.25)'; dz.style.background='none'; dailyAddFiles(Array.from(e.dataTransfer.files)); });
+});
+
+function dailyRenderGrid() {
+  const grid = document.getElementById('dailyImgGrid');
+  document.getElementById('dailyTotalCount').textContent = dailyItems.length;
+  grid.innerHTML = '';
+  dailyItems.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#0D0D26;border:1px solid rgba(255,255,255,.08);border-radius:.9rem;overflow:hidden;position:relative';
+    card.innerHTML = `
+      <button onclick="dailyRemoveItem(${idx})" title="移除"
+        style="position:absolute;top:.4rem;right:.4rem;z-index:2;background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:1.6rem;height:1.6rem;cursor:pointer;font-size:.85rem;line-height:1.6rem;text-align:center">✕</button>
+      <img src="${item.previewUrl}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block"/>
+      <div style="padding:.6rem .7rem">
+        <div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-bottom:.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escH(item.file.name)}</div>
+        <div style="position:relative">
+          <span style="position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.35);font-size:.8rem;pointer-events:none">NT$</span>
+          <input type="number" min="1" placeholder="輸入價格" value="${item.price}"
+            oninput="dailySetPrice(${idx}, this.value)"
+            class="inp" style="padding-left:2.4rem;font-size:.88rem"/>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function dailySetPrice(idx, val) { dailyItems[idx].price = val; dailyCheckMissing(); }
+function dailyRemoveItem(idx) {
+  URL.revokeObjectURL(dailyItems[idx].previewUrl);
+  dailyItems.splice(idx, 1);
+  if (!dailyItems.length) dailyClearList();
+  else dailyRenderGrid();
+}
+function dailyClearList() {
+  dailyItems.forEach(i => URL.revokeObjectURL(i.previewUrl));
+  dailyItems = [];
+  document.getElementById('dailyDropZone').style.display = 'block';
+  document.getElementById('dailyListSection').style.display = 'none';
+  document.getElementById('dailyProgressSection').style.display = 'none';
+}
+function dailyCheckMissing() {
+  const missing = dailyItems.some(i => !i.price || Number(i.price) <= 0);
+  document.getElementById('dailyMissingHint').style.display = missing ? 'inline' : 'none';
+}
+
+async function dailyStartUpload() {
+  const invalid = dailyItems.filter(i => !i.price || Number(i.price) <= 0);
+  if (invalid.length) {
+    dailyCheckMissing();
+    alert(`還有 ${invalid.length} 張圖片沒有填價格！`);
+    return;
+  }
+  if (!dailyItems.length) { alert('請先選擇圖片'); return; }
+
+  document.getElementById('dailyUploadBtn').disabled = true;
+  document.getElementById('dailyProgressSection').style.display = 'block';
+  document.getElementById('dailyDoneMsg').style.display = 'none';
+  document.getElementById('dailyLogList').innerHTML = '';
+  dailySetProgress(0, dailyItems.length, '正在清除舊資料…');
+
+  try {
+    const res = await fetch('/api/accounts', { method: 'DELETE' });
+    const data = await res.json();
+    dailyAddLog(`🗑️ 已清除 ${data.deleted || 0} 筆舊資料`, 'info');
+  } catch(e) {
+    dailyAddLog('❌ 清除舊資料失敗：' + e.message, 'error');
+    document.getElementById('dailyUploadBtn').disabled = false;
+    return;
+  }
+
+  let done = 0;
+  for (const item of dailyItems) {
+    dailySetProgress(done, dailyItems.length, `上傳中 ${item.file.name}…`);
+    const fd = new FormData();
+    fd.append('price', item.price);
+    fd.append('images', item.file, item.file.name);
+    try {
+      const r = await fetch('/api/accounts', { method: 'POST', body: fd });
+      if (r.ok) {
+        dailyAddLog(`✅ ${item.file.name}  NT$ ${Number(item.price).toLocaleString('zh-TW')}`, 'ok');
+      } else {
+        const d = await r.json().catch(()=>({}));
+        dailyAddLog(`❌ ${item.file.name} 失敗: ${d.error || r.status}`, 'error');
+      }
+    } catch(e) {
+      dailyAddLog(`❌ ${item.file.name} 錯誤: ${e.message}`, 'error');
+    }
+    done++;
+    dailySetProgress(done, dailyItems.length, `上傳中…`);
+  }
+
+  dailySetProgress(dailyItems.length, dailyItems.length, '完成！');
+  document.getElementById('dailyDoneMsg').style.display = 'block';
+  document.getElementById('dailyUploadBtn').disabled = false;
+
+  // Refresh accounts list
+  await loadAccounts();
+  renderGrid();
+  showToast('🎉 每日上架完成！', 'success');
+
+  setTimeout(() => { dailyClearList(); }, 3000);
+}
+
+function dailySetProgress(done, total, text) {
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('dailyProgressBar').style.width = pct + '%';
+  document.getElementById('dailyProgressText').textContent = text;
+  document.getElementById('dailyProgressNum').textContent = `${done} / ${total}`;
+}
+
+function dailyAddLog(msg, type) {
+  const colors = { ok: '#4ade80', error: '#f87171', info: '#63B3ED' };
+  const el = document.createElement('div');
+  el.style.cssText = `font-size:.78rem;color:${colors[type]||'#fff'};padding:.25rem .5rem;background:rgba(255,255,255,.04);border-radius:.35rem`;
+  el.textContent = msg;
+  const list = document.getElementById('dailyLogList');
+  list.appendChild(el);
+  list.scrollTop = list.scrollHeight;
+}
+
+/* ══════════════════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════════════════ */
+let siteSettings = null;
+
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    siteSettings = await res.json();
+  } catch(e) { siteSettings = {}; }
+}
+
+function loadSettingsUI() {
+  if (!siteSettings) return;
+  const s = siteSettings;
+  document.getElementById('setMessenger').value = s.messengerLink || '';
+  document.getElementById('setViewerBase').value = s.viewerBase ?? 20;
+  document.getElementById('setViewerRange').value = s.viewerRange ?? 15;
+  document.getElementById('setViewsMulti').value = s.totalViewsMultiplier ?? 3.2;
+  document.getElementById('setDiscountEnabled').checked = s.discountEnabled !== false;
+  document.getElementById('setDiscountPerPage').value = s.discountPerPage ?? 3;
+  document.getElementById('setDiscountMinPct').value = s.discountMinPct ?? 10;
+  document.getElementById('setDiscountMaxPct').value = s.discountMaxPct ?? 30;
+  renderCategoriesUI(s.categories || []);
+}
+
+let settingsCategories = [];
+
+function renderCategoriesUI(cats) {
+  settingsCategories = JSON.parse(JSON.stringify(cats));
+  const list = document.getElementById('categoriesList');
+  if (!list) return;
+  list.innerHTML = settingsCategories.map((c, i) => `
+    <div style="display:grid;grid-template-columns:auto 1fr 80px 80px 70px 30px;gap:.5rem;align-items:center;margin-bottom:.5rem">
+      <input value="${escH(c.emoji)}" oninput="settingsCategories[${i}].emoji=this.value" style="width:36px;text-align:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#fff;border-radius:.4rem;padding:.3rem;font-size:1rem"/>
+      <input value="${escH(c.label)}" oninput="settingsCategories[${i}].label=this.value" class="inp" style="font-size:.82rem" placeholder="名稱"/>
+      <input type="number" value="${c.min}" oninput="settingsCategories[${i}].min=Number(this.value)" class="inp" style="font-size:.78rem" placeholder="最低"/>
+      <input type="number" value="${c.max}" oninput="settingsCategories[${i}].max=Number(this.value)" class="inp" style="font-size:.78rem" placeholder="最高"/>
+      <input type="color" value="${c.color}" oninput="settingsCategories[${i}].color=this.value" style="width:36px;height:30px;border:none;cursor:pointer;background:none"/>
+      <button onclick="settingsCategories.splice(${i},1);renderCategoriesUI(settingsCategories)" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem">✕</button>
+    </div>
+  `).join('');
+}
+
+function addCategory() {
+  settingsCategories.push({ label: '新分類', min: 0, max: 999, color: '#ffffff', emoji: '🏷️' });
+  renderCategoriesUI(settingsCategories);
+}
+
+async function saveSettings() {
+  const data = {
+    messengerLink: document.getElementById('setMessenger').value.trim(),
+    viewerBase: Number(document.getElementById('setViewerBase').value) || 20,
+    viewerRange: Number(document.getElementById('setViewerRange').value) || 15,
+    totalViewsMultiplier: Number(document.getElementById('setViewsMulti').value) || 3.2,
+    discountEnabled: document.getElementById('setDiscountEnabled').checked,
+    discountPerPage: Number(document.getElementById('setDiscountPerPage').value) || 3,
+    discountMinPct: Number(document.getElementById('setDiscountMinPct').value) || 10,
+    discountMaxPct: Number(document.getElementById('setDiscountMaxPct').value) || 30,
+    categories: settingsCategories,
+  };
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) {
+      siteSettings = await res.json();
+      showToast('✅ 設定已儲存！', 'success');
+    } else {
+      showToast('❌ 儲存失敗', 'error');
+    }
+  } catch(e) {
+    showToast('❌ 連線錯誤', 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT (updated)
+══════════════════════════════════════════════════════ */
+async function init() {
+  await Promise.all([loadAccounts(), loadMaintenance(), loadOrders(), loadBugReports(), loadAnalytics(), loadSettings()]);
+  renderGrid();
 }
 
 init();

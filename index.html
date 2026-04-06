@@ -363,6 +363,15 @@ function renderListPage(){
   const start=(S.listPage-1)*LIST_PER_PAGE;
   const pageItems=items.slice(start,start+LIST_PER_PAGE);
 
+  // Determine which items on this page get fake discounts
+  const discountSet = new Set();
+  if (siteSettings.discountEnabled) {
+    const perPage = siteSettings.discountPerPage || 3;
+    // Pick items deterministically based on page
+    const candidates = pageItems.map((a,i)=>({idx:i, hash:((a.id*2654435761)>>>0)%1000})).sort((a,b)=>a.hash-b.hash);
+    for (let i = 0; i < Math.min(perPage, candidates.length); i++) discountSet.add(candidates[i].idx);
+  }
+
   const pgBtn=(label,p,disabled,active=false)=>
     `<button onclick="goListPage(${p})" style="min-width:2.1rem;height:2.1rem;padding:0 .6rem;border-radius:.45rem;font-size:.8rem;font-weight:700;cursor:${disabled?'default':'pointer'};border:1px solid ${active?'rgba(255,215,0,.6)':'rgba(255,255,255,.12)'};background:${active?'rgba(255,215,0,.15)':'rgba(255,255,255,.04)'};color:${active?'#FFD700':disabled?'rgba(255,255,255,.2)':'rgba(255,255,255,.65)'}" ${disabled?'disabled':''}>${label}</button>`;
 
@@ -382,16 +391,36 @@ function renderListPage(){
   return `
   <div style="max-width:80rem;margin:0 auto;padding:0 1rem 4rem">
     <div style="padding:1.4rem 0 .9rem;display:flex;flex-wrap:wrap;align-items:center;gap:.75rem">
-      <div>
+      <div style="flex:1">
         <h1 class="tg-wg" style="font-size:1.4rem;font-weight:900;line-height:1.3">傳說對決 AOV · 帳號展示</h1>
         <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">共 <strong style="color:#FFD700">${avail}</strong> 個帳號在售</p>
       </div>
+      <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:.3rem;padding:.3rem .65rem;border-radius:999px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3)">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;animation:blink 1.5s ease-in-out infinite"></span>
+          <span style="font-size:.75rem;font-weight:700;color:#4ade80">${currentViewers} 人正在瀏覽</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.3rem;padding:.3rem .65rem;border-radius:999px;background:rgba(99,179,237,.1);border:1px solid rgba(99,179,237,.25)">
+          <span style="font-size:.75rem;font-weight:700;color:#63B3ED">👁 累計 ${getInflatedTotalViews().toLocaleString('zh-TW')} 次瀏覽</span>
+        </div>
+      </div>
     </div>
+    <style>@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}</style>
 
     <div style="display:flex;align-items:center;gap:.55rem;padding:.45rem .75rem;margin-bottom:.85rem;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);border-radius:.7rem;font-size:.78rem;color:rgba(255,255,255,.6)">
       <span style="font-size:.95rem;flex-shrink:0">📌</span>
       <span>所有帳號資訊<strong style="color:#FFD700">以圖片為準</strong>，如有疑問請聯繫我們確認</span>
     </div>
+
+    <!-- Price category pills -->
+    ${(siteSettings.categories && siteSettings.categories.length) ? `
+    <div style="display:flex;gap:.4rem;margin-bottom:.85rem;flex-wrap:wrap">
+      ${siteSettings.categories.map(cat => {
+        const isActive = S.priceMin === String(cat.min) && S.priceMax === String(cat.max);
+        return `<button onclick="S.priceMin='${cat.min}';S.priceMax='${cat.max}';S.listPage=1;render()" style="padding:.3rem .75rem;border-radius:999px;font-size:.78rem;font-weight:700;cursor:pointer;border:1px solid ${isActive ? cat.color : 'rgba(255,255,255,.12)'};background:${isActive ? cat.color+'22' : 'rgba(255,255,255,.05)'};color:${isActive ? cat.color : 'rgba(255,255,255,.5)'};transition:all .18s">${cat.emoji} ${esc(cat.label)}</button>`;
+      }).join('')}
+      ${(S.priceMin!==''||S.priceMax!=='') ? `<button onclick="S.priceMin='';S.priceMax='';S.listPage=1;render()" style="padding:.3rem .65rem;border-radius:999px;font-size:.75rem;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.4)">✕ 清除</button>` : ''}
+    </div>` : ''}
 
     <div style="display:flex;align-items:center;gap:.75rem;padding-bottom:.9rem;border-bottom:1px solid rgba(255,255,255,.06)">
       <div style="display:flex;gap:.4rem;overflow-x:auto;flex:1" class="scrollbar-hide">
@@ -432,7 +461,7 @@ function renderListPage(){
       </div>
     `:`
       <div class="pcard-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:.9rem;padding-top:.9rem">
-        ${pageItems.map((a,i)=>renderProductCard(a,i)).join('')}
+        ${pageItems.map((a,i)=>renderProductCard(a,i,discountSet.has(i))).join('')}
       </div>
       ${buildPagination()}
     `}
@@ -440,18 +469,23 @@ function renderListPage(){
 }
 
 /* ── PRODUCT CARD ── */
-function renderProductCard(acc,idx=0){
+function renderProductCard(acc,idx=0,showDiscount=false){
   const leg=acc.rank==='傳說';
+  const cat = getPriceCategory(acc.price);
+  const disc = showDiscount ? getDiscountInfo(acc.id, acc.price) : null;
   return `
   <div class="pcard ${leg&&!acc.sold?'shimmer':''}" style="${leg&&!acc.sold?'border-color:rgba(255,215,0,.28)':''}" onclick="goDetail(${acc.id})">
     <div class="thumb-wrap">
       <img class="thumb" src="${esc(acc.coverImage)}" alt="${esc(acc.title)}" loading="${idx<4?'eager':'lazy'}" decoding="async" fetchpriority="${idx<2?'high':'auto'}" onload="this.classList.add('img-ready')" onerror="this.onerror=null;this.src='https://placehold.co/800x600/0d0d26/ffd700?text=AOV';this.classList.add('img-ready')"/>
       ${acc.sold?`<div style="position:absolute;inset:0;background:rgba(7,7,26,.72);display:flex;align-items:center;justify-content:center;z-index:3"><span style="background:rgba(239,68,68,.9);color:#fff;font-size:.8rem;font-weight:900;padding:.3rem 1rem;border-radius:999px">已售出</span></div>`:''}
+      ${disc?`<div style="position:absolute;top:.35rem;left:.35rem;z-index:4;background:rgba(239,68,68,.9);color:#fff;border-radius:.35rem;padding:.15rem .45rem;font-size:.68rem;font-weight:900">-${disc.discountPct}%</div>`:''}
       <div style="position:absolute;bottom:.35rem;right:.35rem;z-index:4;background:rgba(7,7,26,.72);border:1px solid rgba(255,215,0,.22);border-radius:.28rem;padding:.08rem .32rem;font-size:.6rem;font-weight:700;color:rgba(255,215,0,.65);font-variant-numeric:tabular-nums;backdrop-filter:blur(4px);line-height:1.4">#${acc.id}</div>
     </div>
     <div style="padding:.65rem .75rem .8rem;flex:1;display:flex;flex-direction:column;gap:.35rem">
+      ${cat?`<div style="display:inline-flex;align-items:center;gap:.2rem;align-self:flex-start;padding:.1rem .5rem;border-radius:999px;font-size:.65rem;font-weight:700;background:${cat.color}18;color:${cat.color};border:1px solid ${cat.color}35">${cat.emoji} ${esc(cat.label)}</div>`:''}
       <div style="flex:1"></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.25rem">
+      <div style="margin-top:.25rem">
+        ${disc?`<div style="font-size:.75rem;color:rgba(255,255,255,.35);text-decoration:line-through;font-weight:600">NT$ ${fmt(disc.fakeOriginal)}</div>`:''}
         <div class="tg-gold" style="font-size:1rem;font-weight:900">NT$ ${fmt(acc.price)}</div>
       </div>
     </div>
@@ -1039,6 +1073,7 @@ function renderLightbox(){
 
 /* ── FOOTER ── */
 function renderFooter(){
+  const messengerLink = siteSettings.messengerLink || 'https://m.me/hsieh1010';
   return`
   <footer>
     <div class="footer-inner">
@@ -1046,7 +1081,15 @@ function renderFooter(){
       <p class="copyright">© ${new Date().getFullYear()} AOV Account Shop · All rights reserved</p>
       <button onclick="openBugReport()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:rgba(255,100,100,.7);border-radius:.5rem;padding:.28rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s" onmouseover="this.style.background='rgba(239,68,68,.18)';this.style.color='#f87171'" onmouseout="this.style.background='rgba(239,68,68,.08)';this.style.color='rgba(255,100,100,.7)'">🐛 回報問題</button>
     </div>
-  </footer>`;
+  </footer>
+  <!-- Floating Messenger Button -->
+  <a href="${esc(messengerLink)}" target="_blank" rel="noopener noreferrer" id="messengerFloat"
+     style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:60;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#0084FF,#00C6FF);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,132,255,.45);cursor:pointer;transition:transform .2s,box-shadow .2s;text-decoration:none"
+     onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(0,132,255,.6)'"
+     onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(0,132,255,.45)'"
+     title="透過 Messenger 聯繫我們">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.908 1.434 5.503 3.678 7.2V22l3.378-1.855c.9.25 1.855.388 2.844.388h.1c5.523 0 10-4.145 10-9.243S17.523 2 12 2zm1.042 12.454l-2.546-2.716L5.727 14.5l5.194-5.51 2.546 2.716 4.724-2.762-5.149 5.51z"/></svg>
+  </a>`;
 }
 
 /* =====================================================
@@ -1433,26 +1476,80 @@ window.addEventListener('popstate',()=>{
   window.scrollTo({top:0,behavior:'instant'});
 });
 
+/* =====================================================
+   SITE SETTINGS (loaded from server)
+   ===================================================== */
+let siteSettings = {
+  discountEnabled: true, discountPerPage: 3, discountMinPct: 10, discountMaxPct: 30,
+  categories: [
+    { label: '小資族', min: 0, max: 500, color: '#4ade80', emoji: '🌱' },
+    { label: '進階玩家', min: 501, max: 1500, color: '#63B3ED', emoji: '⚔️' },
+    { label: '收藏家', min: 1501, max: 3000, color: '#B47FFF', emoji: '👑' },
+    { label: '土豪專區', min: 3001, max: 9999999, color: '#FFD700', emoji: '💎' },
+  ],
+  messengerLink: 'https://m.me/hsieh1010',
+  viewerBase: 20, viewerRange: 15, totalViewsMultiplier: 3.2,
+};
+
+/* ── Fake discount algorithm ── */
+function getDiscountInfo(accountId, price) {
+  if (!siteSettings.discountEnabled) return null;
+  // Deterministic pseudo-random based on account ID
+  const seed = (accountId * 2654435761) >>> 0;
+  const hash = (seed % 100);
+  // Only some items get discounted (controlled by discountPerPage via rendering)
+  const minPct = siteSettings.discountMinPct || 10;
+  const maxPct = siteSettings.discountMaxPct || 30;
+  const pctRange = maxPct - minPct;
+  const markupPct = minPct + (hash % (pctRange + 1));
+  const fakeOriginal = Math.round(price * (1 + markupPct / 100));
+  return { fakeOriginal, discountPct: markupPct };
+}
+
+/* ── Price category ── */
+function getPriceCategory(price) {
+  const cats = siteSettings.categories || [];
+  for (const cat of cats) {
+    if (price >= cat.min && price <= cat.max) return cat;
+  }
+  return null;
+}
+
+/* ── Live viewer count ── */
+let currentViewers = 0;
+function updateViewerCount() {
+  const base = siteSettings.viewerBase || 20;
+  const range = siteSettings.viewerRange || 15;
+  currentViewers = base + Math.floor(Math.random() * range);
+}
+updateViewerCount();
+setInterval(updateViewerCount, 25000);
+
+/* ── Total views (inflated) ── */
+function getInflatedTotalViews() {
+  const realViews = accountsData.reduce((s, a) => s + (a.views || 0), 0);
+  const multi = siteSettings.totalViewsMultiplier || 3.2;
+  return Math.round(realViews * multi);
+}
+
 (async()=>{
   const h=location.hash;
   if(h.startsWith('#/account/')){const id=parseInt(h.replace('#/account/',''));if(!isNaN(id)){S.page='detail';S.accountId=id;}}
   else if(h==='#/admin'){window.location.href='/admin.html';return;}
   else if(h==='#/design'){S.page='design';S.designStep='form';S.designError='';restoreDsFormData();}
-  // Load per-service maintenance flags
+  // Load per-service maintenance flags & settings
   try {
-    const mr = await fetch('/api/maintenance');
+    const [mr, sr] = await Promise.all([fetch('/api/maintenance'), fetch('/api/settings')]);
     const md = await mr.json();
-    S.maintenance = {
-      spotAccount: md.spotAccount || false,
-      sellAccount: md.sellAccount || false,
-      design:      md.design      || false,
-    };
-  } catch(e) { /* ignore, default to no maintenance */ }
+    S.maintenance = { spotAccount: md.spotAccount||false, sellAccount: md.sellAccount||false, design: md.design||false };
+    siteSettings = { ...siteSettings, ...(await sr.json()) };
+    updateViewerCount();
+  } catch(e) {}
 
-  render(); // render loading state
+  render();
   accountsData = await loadAccountsFromAPI();
   S.isLoading = false;
-  render(); // re-render with real data from API
+  render();
 })();
 </script>
 </body>
