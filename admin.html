@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>後台管理 — 傳說對決帳號</title>
+  <title>後台管理 — 遊戲帳號平台</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -62,9 +62,9 @@
 <nav style="background:rgba(7,7,26,.95);border-bottom:1px solid rgba(255,215,0,.1);position:sticky;top:0;z-index:50">
   <div style="max-width:1200px;margin:0 auto;padding:.65rem 1rem;display:flex;align-items:center;gap:.75rem">
     <a href="index.html" style="display:flex;align-items:center;gap:.55rem;text-decoration:none;flex-shrink:0">
-      <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#7B2FBE)">⚔</div>
+      <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#7B2FBE)">🎮</div>
       <div style="line-height:1.25">
-        <div class="tg-gold" style="font-weight:900;font-size:.85rem">傳說對決</div>
+        <div class="tg-gold" style="font-weight:900;font-size:.85rem">遊戲帳號</div>
       </div>
     </a>
     <div style="flex:1;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.45)">/ 後台管理</div>
@@ -390,6 +390,19 @@
     </div>
 
     <form id="postForm" onsubmit="handleSubmit(event)">
+      <!-- Game select -->
+      <div style="margin-bottom:.9rem">
+        <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">遊戲 <span style="color:#f87171">*</span></label>
+        <select id="fGame" class="inp" style="cursor:pointer">
+          <option value="AOV">⚔️ 傳說對決 (AOV)</option>
+          <option value="PUBG">🔫 PUBG</option>
+          <option value="COD">💣 決勝時刻</option>
+          <option value="BrawlStars">🌟 荒野亂鬥</option>
+          <option value="SpeedDrift">🏎️ 極速領域</option>
+          <option value="FreeFire">🔥 Free Fire</option>
+        </select>
+      </div>
+
       <!-- Single price (edit mode) -->
       <div id="singlePriceWrap" style="margin-bottom:.9rem">
         <label style="display:block;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.35rem">售價 (NT$) <span style="color:#f87171">*</span></label>
@@ -679,7 +692,10 @@ function renderGrid() {
           <span style="display:flex;align-items:center;justify-content:center"><input type="checkbox" ${isSel?'checked':''} onchange="toggleSelect(${acc.id},this.checked)" style="accent-color:#FFD700;width:15px;height:15px;cursor:pointer"/></span>
           <span style="font-size:.72rem;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums">${acc.id}</span>
           <img src="${escH(imgSrc)}" style="width:4.5rem;height:3.2rem;object-fit:cover;border-radius:.4rem;border:1px solid rgba(255,255,255,.08);display:block" onerror="this.src='https://placehold.co/120x90/0d0d26/555?text=No+Img'"/>
-          <div style="font-size:.88rem;font-weight:900;color:#FFD700;white-space:nowrap">NT$&nbsp;${Number(acc.price).toLocaleString('zh-TW')}</div>
+          <div>
+            <div style="font-size:.88rem;font-weight:900;color:#FFD700;white-space:nowrap">NT$&nbsp;${Number(acc.price).toLocaleString('zh-TW')}</div>
+            ${(()=>{const GAME_COLORS={AOV:'#FFD700',PUBG:'#E8B84B',COD:'#78A04A',BrawlStars:'#7B68EE',SpeedDrift:'#00CED1',FreeFire:'#FF6B35'};const GAME_LABELS={AOV:'⚔️AOV',PUBG:'🔫PUBG',COD:'💣決勝時刻',BrawlStars:'🌟荒野亂鬥',SpeedDrift:'🏎️極速領域',FreeFire:'🔥FreeFire'};const g=acc.game||'AOV';const c=GAME_COLORS[g]||'#FFD700';return`<span style="font-size:.62rem;font-weight:700;color:${c};background:${c}1A;border:1px solid ${c}33;border-radius:999px;padding:.05rem .4rem">${GAME_LABELS[g]||g}</span>`;})()}
+          </div>
           <div style="text-align:center;font-size:.78rem;font-weight:700;color:#63B3ED;font-variant-numeric:tabular-nums">${(acc.views||0).toLocaleString('zh-TW')}</div>
           <div style="text-align:center;font-size:.7rem;color:${acc.imgNAME ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.15)'}">
             ${acc.imgNAME ? `<span title="${escH(acc.imgNAME)}">🖼</span>` : '—'}
@@ -739,6 +755,7 @@ function openAddModal() {
   document.getElementById('modalTitle').textContent = '新增貼文';
   document.getElementById('submitText').textContent  = '新增貼文';
   document.getElementById('fPrice').value  = '';
+  document.getElementById('fGame').value   = 'AOV';
   document.getElementById('currentImgHint').style.display = 'none';
   clearImageState();
   clearError();
@@ -755,6 +772,7 @@ function openEditModal(id) {
   document.getElementById('modalTitle').textContent = '編輯貼文';
   document.getElementById('submitText').textContent  = '儲存變更';
   document.getElementById('fPrice').value = acc.price;
+  document.getElementById('fGame').value  = acc.game || 'AOV';
 
   const existingImgs = Array.isArray(acc.imgNAMEs) && acc.imgNAMEs.length
     ? acc.imgNAMEs : (acc.imgNAME ? [acc.imgNAME] : []);
@@ -867,9 +885,11 @@ async function handleSubmit(e) {
     setLoading(true);
     let successCount = 0;
     try {
+      const gameVal = document.getElementById('fGame').value || 'AOV';
       for (let i = 0; i < selectedFiles.length; i++) {
         const fd = new FormData();
         fd.append('price', filePrices[i]);
+        fd.append('game', gameVal);
         const compressed = await compressToWebp(selectedFiles[i]);
         fd.append('images', compressed, compressed.name);
         const res = await fetch('/api/accounts', { method: 'POST', body: fd });
@@ -896,6 +916,7 @@ async function handleSubmit(e) {
   setLoading(true);
   const fd = new FormData();
   fd.append('price', price);
+  fd.append('game', document.getElementById('fGame').value || 'AOV');
   for (const f of selectedFiles) {
     const compressed = await compressToWebp(f);
     fd.append('images', compressed, compressed.name);
