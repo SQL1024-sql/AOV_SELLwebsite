@@ -123,6 +123,48 @@
 
 <script>
 /* ═══════════════════════════════════════
+   IMAGE COMPRESSION — convert to webp client-side
+   to dramatically speed up uploads
+═══════════════════════════════════════ */
+async function compressToWebp(file, { maxDim = 1600, quality = 0.82 } = {}) {
+  if (!file || !file.type || !file.type.startsWith('image/')) return file;
+  if (file.type === 'image/gif') return file;
+  try {
+    let bitmap;
+    if (typeof createImageBitmap === 'function') {
+      bitmap = await createImageBitmap(file);
+    } else {
+      bitmap = await new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+        img.src = url;
+      });
+    }
+    const w = bitmap.width || bitmap.naturalWidth;
+    const h = bitmap.height || bitmap.naturalHeight;
+    if (!w || !h) return file;
+    const scale = Math.min(1, maxDim / Math.max(w, h));
+    const tw = Math.max(1, Math.round(w * scale));
+    const th = Math.max(1, Math.round(h * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = tw; canvas.height = th;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, tw, th);
+    if (bitmap.close) bitmap.close();
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/webp', quality));
+    if (!blob) return file;
+    if (blob.size >= file.size && /\.webp$/i.test(file.name)) return file;
+    const newName = file.name.replace(/\.[^.]+$/, '') + '.webp';
+    return new File([blob], newName, { type: 'image/webp', lastModified: Date.now() });
+  } catch (e) {
+    console.warn('webp 轉換失敗，使用原檔上傳:', e);
+    return file;
+  }
+}
+
+/* ═══════════════════════════════════════
    AUTH — page is protected by server, but API calls need credentials too
 ═══════════════════════════════════════ */
 function getAuthHeaders() {
@@ -290,10 +332,12 @@ async function startUpload() {
   // Step 2: upload new
   let done = 0;
   for (const item of items) {
-    setProgress(done, items.length, `上傳中 ${item.file.name}…`);
+    setProgress(done, items.length, `壓縮中 ${item.file.name}…`);
+    const compressed = await compressToWebp(item.file);
+    setProgress(done, items.length, `上傳中 ${compressed.name}…`);
     const fd = new FormData();
     fd.append('price', item.price);
-    fd.append('images', item.file, item.file.name);
+    fd.append('images', compressed, compressed.name);
     try {
       const r = await fetch('/api/accounts', { method: 'POST', body: fd });
       if (r.ok) {

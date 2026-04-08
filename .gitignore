@@ -8,6 +8,8 @@ imgCounter.json
 bug_reports.json
 analytics.json
 .env
+.encryption_key
+.session_secret
 wrangler.toml
 wrangler.jsonc
 package-lock.json

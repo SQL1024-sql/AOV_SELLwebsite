@@ -67,6 +67,73 @@ function loadOrCreateEncKey() {
 const ENCRYPTION_KEY = loadOrCreateEncKey();
 const ENC_KEY_BUF = Buffer.from(ENCRYPTION_KEY.slice(0, 64).padEnd(64, '0'), 'hex'); // 32 bytes
 
+/* ── Admin session secret (for persistent "remember this device" cookie) ── */
+const SESSION_SECRET_FILE = path.join(DATA_DIR, '.session_secret');
+function loadOrCreateSessionSecret() {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  try {
+    const k = fs.readFileSync(SESSION_SECRET_FILE, 'utf8').trim();
+    if (k && k.length >= 32) return k;
+  } catch {}
+  const k = crypto.randomBytes(32).toString('hex');
+  try { fs.writeFileSync(SESSION_SECRET_FILE, k, { mode: 0o600 }); } catch (e) {
+    console.warn('⚠️  無法寫入 session secret 檔案，重啟後將需重新登入：', e.message);
+  }
+  return k;
+}
+const SESSION_SECRET = loadOrCreateSessionSecret();
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const SESSION_COOKIE_NAME = 'admin_session';
+
+function signSessionExp(exp) {
+  return crypto.createHmac('sha256', SESSION_SECRET).update(String(exp)).digest('hex');
+}
+function makeSessionToken() {
+  const exp = Date.now() + SESSION_MAX_AGE_MS;
+  return `${exp}.${signSessionExp(exp)}`;
+}
+function verifySessionToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  const dot = token.indexOf('.');
+  if (dot === -1) return false;
+  const expStr = token.slice(0, dot);
+  const sig    = token.slice(dot + 1);
+  const exp = Number(expStr);
+  if (!Number.isFinite(exp) || exp < Date.now()) return false;
+  const expected = signSessionExp(exp);
+  if (expected.length !== sig.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(sig, 'hex'));
+  } catch { return false; }
+}
+function parseCookies(header) {
+  const out = {};
+  if (!header) return out;
+  for (const part of header.split(';')) {
+    const i = part.indexOf('=');
+    if (i === -1) continue;
+    const k = part.slice(0, i).trim();
+    const v = part.slice(i + 1).trim();
+    if (k) {
+      try { out[k] = decodeURIComponent(v); } catch { out[k] = v; }
+    }
+  }
+  return out;
+}
+function setSessionCookie(req, res) {
+  const token = makeSessionToken();
+  const isHttps = req.headers['x-forwarded-proto'] === 'https' || req.secure;
+  const parts = [
+    `${SESSION_COOKIE_NAME}=${token}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    'Path=/',
+    `Max-Age=${Math.floor(SESSION_MAX_AGE_MS / 1000)}`,
+  ];
+  if (isHttps) parts.push('Secure');
+  res.append('Set-Cookie', parts.join('; '));
+}
+
 function encryptText(text) {
   if (!text) return '';
   const iv = crypto.randomBytes(16);
@@ -127,6 +194,12 @@ function requireAuth(req, res, next) {
     return res.status(503).send('管理員密碼未設定，請聯繫系統管理員設定 ADMIN_PASS 環境變數');
   }
 
+  // Persistent session: if device has a valid signed cookie, skip Basic Auth
+  const cookies = parseCookies(req.headers['cookie']);
+  if (cookies[SESSION_COOKIE_NAME] && verifySessionToken(cookies[SESSION_COOKIE_NAME])) {
+    return next();
+  }
+
   const ip  = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
   const now = Date.now();
 
@@ -155,6 +228,8 @@ function requireAuth(req, res, next) {
       const passOk = passBuf.length === adminPBuf.length && crypto.timingSafeEqual(passBuf, adminPBuf);
       if (userOk && passOk) {
         authFailures.delete(ip);
+        // Issue a long-lived signed cookie so this device can skip Basic Auth in future visits
+        setSessionCookie(req, res);
         return next();
       }
     }
