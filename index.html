@@ -1091,6 +1091,7 @@ function renderLightbox(){
   return`
   <div class="modal-backdrop" onclick="closeLightbox()">
     <div class="modal-box" style="position:relative;width:100%;max-width:1000px;display:flex;flex-direction:column;align-items:center" onclick="event.stopPropagation()">
+      <button onclick="closeLightbox()" style="position:absolute;top:-2.6rem;left:0;display:flex;align-items:center;gap:.35rem;padding:.4rem .85rem;font-size:.85rem;font-weight:700;color:#FFD700;background:rgba(0,0,0,.55);border:1px solid rgba(255,215,0,.35);border-radius:.55rem;cursor:pointer;backdrop-filter:blur(6px)" onmouseover="this.style.background='rgba(255,215,0,.18)'" onmouseout="this.style.background='rgba(0,0,0,.55)'">← 返回</button>
       <button onclick="closeLightbox()" style="position:absolute;top:-2.5rem;right:0;font-size:2rem;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">&times;</button>
       <img src="${esc(cur)}" style="max-height:88vh;max-width:100%;border-radius:.85rem;object-fit:contain;display:block" loading="eager" decoding="async" onerror="this.onerror=null;this.src='https://placehold.co/1000x750/0d0d26/ffd700?text=AOV'"/>
       ${imgs.length>1?`<div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem">
