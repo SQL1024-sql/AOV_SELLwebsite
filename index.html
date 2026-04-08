@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>傳說對決帳號展示</title>
-  <meta name="description" content="傳說對決 AOV 帳號現貨展示平台，多種帳號供您選擇，安全交易有保障。" />
+  <title>遊戲帳號交易平台</title>
+  <meta name="description" content="AOV、PUBG、決勝時刻、荒野亂鬥、極速領域、Free Fire 帳號現貨展示，安全交易有保障。" />
   <!-- Open Graph / 社群預覽 -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://aovsellwebsite-production.up.railway.app/" />
@@ -188,6 +188,7 @@ async function loadAccountsFromAPI() {
       sellerId:    'admin',
       title:       acc.title || '',
       price:       acc.price,
+      game:        acc.game  || 'AOV',
       rank:        acc.rank || '其他',
       heroCount:   acc.heroCount  || 0,
       skinCount:   acc.skinCount  || 0,
@@ -218,6 +219,7 @@ const S = {
   page:'home',          // 'home' | 'list' | 'detail' | 'admin' | 'design'
   accountId:null,
   filterRank:'all',
+  filterGame:'all',
   sortBy:'default',
   searchQuery:'',
   searchInput:'',
@@ -251,11 +253,23 @@ const S = {
 function esc(s){if(typeof s!=='string')return String(s??'');return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function fmt(n){return Number(n).toLocaleString('zh-TW')}
 function rankClass(r){return{傳說:'rk-legend',鑽石:'rk-diamond',宗師:'rk-master'}[r]||'rk-champ'}
+
+/* ── GAMES DEFINITION ── */
+const GAMES = [
+  { key:'AOV',        label:'傳說對決',  emoji:'⚔️',  color:'#FFD700' },
+  { key:'PUBG',       label:'PUBG',       emoji:'🔫',  color:'#E8B84B' },
+  { key:'COD',        label:'決勝時刻',  emoji:'💣',  color:'#78A04A' },
+  { key:'BrawlStars', label:'荒野亂鬥',  emoji:'🌟',  color:'#7B68EE' },
+  { key:'SpeedDrift', label:'極速領域',  emoji:'🏎️', color:'#00CED1' },
+  { key:'FreeFire',   label:'Free Fire', emoji:'🔥',  color:'#FF6B35' },
+];
+function getGame(key){ return GAMES.find(g=>g.key===key)||GAMES[0]; }
 function nextId(){return accountsData.length?Math.max(...accountsData.map(a=>a.id))+1:1}
 
 function filteredList(){
   let items=[...accountsData];
   const q=S.searchQuery.toLowerCase();
+  if(S.filterGame!=='all') items=items.filter(a=>(a.game||'AOV')===S.filterGame);
   if(S.filterRank!=='all') items=items.filter(a=>a.rank===S.filterRank);
   if(q){
     const qn=Number(q);
@@ -317,9 +331,9 @@ function renderNav(){
   <nav class="glass-dark" style="border-bottom:1px solid rgba(255,215,0,.1)">
     <div class="nav-main-row" style="max-width:80rem;margin:0 auto;padding:.65rem 1rem;display:flex;align-items:center;gap:.75rem">
       <button onclick="goHome()" style="display:flex;align-items:center;gap:.55rem;background:none;border:none;cursor:pointer;flex-shrink:0">
-        <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#7B2FBE)">⚔</div>
+        <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#7B2FBE)">🎮</div>
         <div class="nav-title" style="text-align:left;line-height:1.25">
-          <div class="tg-gold" style="font-weight:900;font-size:.85rem">傳說對決</div>
+          <div class="tg-gold" style="font-weight:900;font-size:.85rem">遊戲帳號</div>
         </div>
       </button>
 
@@ -352,7 +366,7 @@ function renderHomePage(){
   return `
   <div style="max-width:50rem;margin:0 auto;padding:3rem 1rem 4rem;min-height:60vh">
     <div style="text-align:center;margin-bottom:2.5rem">
-      <h1 class="tg-gold" style="font-size:1.7rem;font-weight:900;margin-bottom:.5rem">歡迎來到 傳說對決 帳號平台</h1>
+      <h1 class="tg-gold" style="font-size:1.7rem;font-weight:900;margin-bottom:.5rem">遊戲帳號交易平台</h1>
       <p style="font-size:.85rem;color:rgba(255,255,255,.5)">請選擇您要的服務</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
@@ -421,9 +435,20 @@ function renderListPage(){
 
   return `
   <div style="max-width:80rem;margin:0 auto;padding:0 1rem 4rem">
-    <div style="padding:1.4rem 0 .9rem;display:flex;flex-wrap:wrap;align-items:center;gap:.75rem">
+    <!-- Game tabs -->
+    <div style="display:flex;gap:.4rem;overflow-x:auto;padding:.9rem 0 .5rem" class="scrollbar-hide">
+      <button onclick="setGameFilter('all')" style="flex-shrink:0;padding:.32rem .85rem;border-radius:999px;font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid ${S.filterGame==='all'?'rgba(255,255,255,.5)':'rgba(255,255,255,.15)'};background:${S.filterGame==='all'?'rgba(255,255,255,.15)':'rgba(255,255,255,.05)'};color:${S.filterGame==='all'?'#fff':'rgba(255,255,255,.45)'}">🎮 全部</button>
+      ${GAMES.map(g=>`<button onclick="setGameFilter('${g.key}')" style="flex-shrink:0;padding:.32rem .85rem;border-radius:999px;font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid ${S.filterGame===g.key?g.color:'rgba(255,255,255,.15)'};background:${S.filterGame===g.key?g.color+'22':'rgba(255,255,255,.05)'};color:${S.filterGame===g.key?g.color:'rgba(255,255,255,.45)'}">
+        ${g.emoji} ${g.label}
+      </button>`).join('')}
+    </div>
+
+    <div style="padding:.4rem 0 .9rem;display:flex;flex-wrap:wrap;align-items:center;gap:.75rem">
       <div style="flex:1">
-        <h1 class="tg-wg" style="font-size:1.4rem;font-weight:900;line-height:1.3">傳說對決 AOV · 帳號展示</h1>
+        ${S.filterGame==='all'
+          ? `<h1 class="tg-wg" style="font-size:1.4rem;font-weight:900;line-height:1.3">遊戲帳號 · 全部展示</h1>`
+          : (()=>{const g=getGame(S.filterGame);return`<h1 style="font-size:1.4rem;font-weight:900;line-height:1.3;color:${g.color}">${g.emoji} ${g.label} · 帳號展示</h1>`})()
+        }
         <p style="font-size:.78rem;color:rgba(255,255,255,.38);margin-top:.2rem">共 <strong style="color:#FFD700">${avail}</strong> 個帳號在售</p>
       </div>
       <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
@@ -483,7 +508,7 @@ function renderListPage(){
       ${(S.priceMin!==''||S.priceMax!=='')?`<button onclick="S.priceMin='';S.priceMax='';S.listPage=1;render()" style="font-size:.72rem;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;padding:.2rem .4rem" onmouseover="this.style.color='#FFD700'" onmouseout="this.style.color='rgba(255,255,255,.35)'">✕ 清除</button>`:''}
     </div>
 
-    ${(S.searchQuery||S.filterRank!=='all'||S.priceMin!==''||S.priceMax!=='')?`<div style="padding:.35rem 0 .55rem;font-size:.78rem;color:rgba(255,255,255,.38)">${S.searchQuery?`搜尋「<span style="color:#FFD700">${esc(S.searchQuery)}</span>」 `:''}${(S.priceMin!==''||S.priceMax!=='')?`價格 <span style="color:#FFD700">${S.priceMin||'0'} ~ ${S.priceMax||'∞'}</span> `:''}找到 <strong style="color:#fff">${items.length}</strong> 個帳號</div>`:''}
+    ${(S.searchQuery||S.filterRank!=='all'||S.filterGame!=='all'||S.priceMin!==''||S.priceMax!=='')?`<div style="padding:.35rem 0 .55rem;font-size:.78rem;color:rgba(255,255,255,.38)">${S.filterGame!=='all'?`遊戲「<span style="color:${getGame(S.filterGame).color}">${getGame(S.filterGame).emoji} ${getGame(S.filterGame).label}</span>」 `:''}${S.searchQuery?`搜尋「<span style="color:#FFD700">${esc(S.searchQuery)}</span>」 `:''}${(S.priceMin!==''||S.priceMax!=='')?`價格 <span style="color:#FFD700">${S.priceMin||'0'} ~ ${S.priceMax||'∞'}</span> `:''}找到 <strong style="color:#fff">${items.length}</strong> 個帳號</div>`:''}
 
     ${items.length===0?`
       <div style="text-align:center;padding:6rem 0;color:rgba(255,255,255,.3)">
@@ -513,7 +538,10 @@ function renderProductCard(acc,idx=0,showDiscount=false){
       <div style="position:absolute;bottom:.35rem;right:.35rem;z-index:4;background:rgba(7,7,26,.72);border:1px solid rgba(255,215,0,.22);border-radius:.28rem;padding:.08rem .32rem;font-size:.6rem;font-weight:700;color:rgba(255,215,0,.65);font-variant-numeric:tabular-nums;backdrop-filter:blur(4px);line-height:1.4">#${acc.id}</div>
     </div>
     <div style="padding:.65rem .75rem .8rem;flex:1;display:flex;flex-direction:column;gap:.35rem">
-      ${cat?`<div style="display:inline-flex;align-items:center;gap:.2rem;align-self:flex-start;padding:.1rem .5rem;border-radius:999px;font-size:.65rem;font-weight:700;background:${cat.color}18;color:${cat.color};border:1px solid ${cat.color}35">${cat.emoji} ${esc(cat.label)}</div>`:''}
+      <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+        ${(()=>{const g=getGame(acc.game||'AOV');return`<div style="display:inline-flex;align-items:center;gap:.2rem;padding:.1rem .45rem;border-radius:999px;font-size:.62rem;font-weight:700;background:${g.color}1A;color:${g.color};border:1px solid ${g.color}33">${g.emoji} ${g.label}</div>`;})()}
+        ${cat?`<div style="display:inline-flex;align-items:center;gap:.2rem;padding:.1rem .45rem;border-radius:999px;font-size:.62rem;font-weight:700;background:${cat.color}18;color:${cat.color};border:1px solid ${cat.color}35">${cat.emoji} ${esc(cat.label)}</div>`:''}
+      </div>
       <div style="flex:1"></div>
       <div style="margin-top:.25rem">
         ${disc?`<div style="font-size:.75rem;color:rgba(255,255,255,.35);text-decoration:line-through;font-weight:600">NT$ ${fmt(disc.fakeOriginal)}</div>`:''}
@@ -556,6 +584,7 @@ function renderDetailPage(){
       <!-- Info -->
       <div id="infoCol">
         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.7rem">
+          ${(()=>{const g=getGame(acc.game||'AOV');return`<span style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px;background:${g.color}1A;color:${g.color};border:1px solid ${g.color}44">${g.emoji} ${g.label}</span>`;})()}
           <span class="${rankClass(acc.rank)}" style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px">⚔ ${esc(acc.rank)}</span>
           ${acc.sold?`<span style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35)">已售出</span>`:`<span style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3)">✅ 可購買</span>`}
           ${acc.isNew?`<span style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(99,179,237,.15);color:#63B3ED;border:1px solid rgba(99,179,237,.3)">🆕 新上架</span>`:''}
@@ -574,7 +603,12 @@ function renderDetailPage(){
     </div>
 
     <!-- Related -->
-    ${(()=>{const rel=accountsData.filter(a=>a.id!==acc.id&&!a.sold).slice(0,6);if(!rel.length)return'';return`
+    ${(()=>{
+      // same-game first, then others
+      const sameGame=accountsData.filter(a=>a.id!==acc.id&&!a.sold&&(a.game||'AOV')===(acc.game||'AOV'));
+      const others=accountsData.filter(a=>a.id!==acc.id&&!a.sold&&(a.game||'AOV')!==(acc.game||'AOV'));
+      const rel=[...sameGame,...others].slice(0,6);
+      if(!rel.length)return'';return`
       <div style="margin-top:2.5rem">
         <h2 style="font-size:.92rem;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:.85rem;padding-bottom:.55rem;border-bottom:1px solid rgba(255,255,255,.07)">其他在售帳號</h2>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:.75rem">
@@ -1110,8 +1144,8 @@ function renderFooter(){
   return`
   <footer>
     <div class="footer-inner">
-      <div class="tg-gold" style="font-size:.85rem;font-weight:700">⚔ 傳說對決 帳號展示平台</div>
-      <p class="copyright">© ${new Date().getFullYear()} AOV Account Shop · All rights reserved</p>
+      <div class="tg-gold" style="font-size:.85rem;font-weight:700">🎮 遊戲帳號交易平台</div>
+      <p class="copyright">© ${new Date().getFullYear()} Game Account Shop · All rights reserved</p>
       <button onclick="openBugReport()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:rgba(255,100,100,.7);border-radius:.5rem;padding:.28rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s" onmouseover="this.style.background='rgba(239,68,68,.18)';this.style.color='#f87171'" onmouseout="this.style.background='rgba(239,68,68,.08)';this.style.color='rgba(255,100,100,.7)'">🐛 回報問題</button>
     </div>
   </footer>
@@ -1160,6 +1194,7 @@ function goDesign(){document.body.style.overflow='';history.pushState(null,'','#
 /* List */
 function handleSearch(v){S.searchQuery=v;S.searchInput=v;S.listPage=1;render()}
 function setFilter(r){S.filterRank=r;S.listPage=1;render()}
+function setGameFilter(g){S.filterGame=g;S.filterRank='all';S.listPage=1;render()}
 function setPriceRange(min,max){S.priceMin=min;S.priceMax=max;S.listPage=1;render()}
 function setSort(v){S.sortBy=v;S.listPage=1;render()}
 function goListPage(p){S.listPage=p;window.scrollTo({top:0,behavior:'smooth'});render()}
