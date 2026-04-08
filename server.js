@@ -450,7 +450,7 @@ app.get('/api/accounts', (req, res) => {
 app.post('/api/accounts', requireAuth, upload.array('images', 200), (req, res) => {
   return withFileLock(ACCOUNTS_FILE, () => {
     const accounts = readAccounts();
-    const { price } = req.body;
+    const { price, game } = req.body;
     const files = req.files || [];
 
     const priceNum = Number(price);
@@ -458,6 +458,9 @@ app.post('/api/accounts', requireAuth, upload.array('images', 200), (req, res) =
       files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
       return res.status(400).json({ error: '價格必須為正整數（最大 9999999）' });
     }
+
+    const VALID_GAMES = ['AOV','PUBG','COD','BrawlStars','SpeedDrift','FreeFire'];
+    const gameName = VALID_GAMES.includes(game) ? game : 'AOV';
 
     for (const f of files) {
       if (!isAllowedImageMime(f.path)) {
@@ -480,6 +483,7 @@ app.post('/api/accounts', requireAuth, upload.array('images', 200), (req, res) =
     const newAccount = {
       id:       newId,
       price:    Number(price),
+      game:     gameName,
       imgNAME:  imgNAMEs[0] || '',
       imgNAMEs,
       views:    0,
@@ -504,12 +508,15 @@ app.put('/api/accounts/:id', requireAuth, upload.array('images', 200), (req, res
       return res.status(404).json({ error: '帳號不存在' });
     }
 
-    const { price } = req.body;
+    const { price, game } = req.body;
     const priceNum = Number(price);
     if (!price || !Number.isFinite(priceNum) || priceNum <= 0 || priceNum > 9999999 || !Number.isInteger(priceNum)) {
       files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
       return res.status(400).json({ error: '價格必須為正整數（最大 9999999）' });
     }
+
+    const VALID_GAMES = ['AOV','PUBG','COD','BrawlStars','SpeedDrift','FreeFire'];
+    const gameName = VALID_GAMES.includes(game) ? game : (accounts[idx].game || 'AOV');
 
     for (const f of files) {
       if (!isAllowedImageMime(f.path)) {
@@ -540,7 +547,7 @@ app.put('/api/accounts/:id', requireAuth, upload.array('images', 200), (req, res
       }
     }
 
-    accounts[idx] = { ...accounts[idx], price: Number(price), imgNAME: imgNAMEs[0] || '', imgNAMEs };
+    accounts[idx] = { ...accounts[idx], price: Number(price), game: gameName, imgNAME: imgNAMEs[0] || '', imgNAMEs };
     writeAccounts(accounts);
     res.json(accounts[idx]);
   });
