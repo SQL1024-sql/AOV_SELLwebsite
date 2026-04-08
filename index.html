@@ -347,14 +347,38 @@ function renderNav(){
 /* ── LIST PAGE ── */
 const LIST_PER_PAGE = 40;
 
+function renderServiceTiles(){
+  return `
+  <div style="max-width:80rem;margin:0 auto;padding:1rem 1rem .25rem">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem">
+      <button onclick="goDesign()" style="aspect-ratio:1/1;border-radius:1rem;border:1px solid rgba(180,127,255,.35);background:linear-gradient(135deg,rgba(180,127,255,.18),rgba(180,127,255,.05));color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.45rem;transition:transform .15s,border-color .15s" onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(180,127,255,.7)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(180,127,255,.35)'">
+        <div style="font-size:2rem">🎨</div>
+        <div style="font-size:.92rem;font-weight:900;color:#B47FFF">製圖</div>
+        <div style="font-size:.7rem;color:rgba(255,255,255,.45)">客製化美術</div>
+      </button>
+      <button onclick="openServiceModal('buy')" style="aspect-ratio:1/1;border-radius:1rem;border:1px solid rgba(255,215,0,.35);background:linear-gradient(135deg,rgba(255,215,0,.18),rgba(255,215,0,.05));color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.45rem;transition:transform .15s,border-color .15s" onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(255,215,0,.7)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(255,215,0,.35)'">
+        <div style="font-size:2rem">💰</div>
+        <div style="font-size:.92rem;font-weight:900;color:#FFD700">賣帳</div>
+        <div style="font-size:.7rem;color:rgba(255,255,255,.45)">出售你的帳號</div>
+      </button>
+      <button onclick="goHome()" style="aspect-ratio:1/1;border-radius:1rem;border:1px solid rgba(99,179,237,.35);background:linear-gradient(135deg,rgba(99,179,237,.18),rgba(99,179,237,.05));color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.45rem;transition:transform .15s,border-color .15s" onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(99,179,237,.7)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(99,179,237,.35)'">
+        <div style="font-size:2rem">🛒</div>
+        <div style="font-size:.92rem;font-weight:900;color:#63B3ED">買帳</div>
+        <div style="font-size:.7rem;color:rgba(255,255,255,.45)">瀏覽現貨帳號</div>
+      </button>
+    </div>
+  </div>`;
+}
+
 function renderListPage(){
   if(S.maintenance.spotAccount) return`
-  <div style="max-width:80rem;margin:0 auto;padding:6rem 1rem;text-align:center;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+  <div style="max-width:80rem;margin:0 auto;padding:4rem 1rem 1rem;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
     <div style="font-size:4rem;margin-bottom:1rem">🔧</div>
     <h1 style="font-size:1.5rem;font-weight:900;color:#f87171;margin-bottom:.65rem">現貨帳號 維護中</h1>
     <p style="font-size:.9rem;color:rgba(255,255,255,.5);max-width:340px;line-height:1.7">我們正在進行更新，請稍後再回來查看。如有急需請直接聯繫我們！</p>
     <button onclick="openContactModal(null)" style="margin-top:1.5rem;padding:.65rem 1.75rem;border-radius:.75rem;background:linear-gradient(135deg,#FFD700,#FFA500);color:#07071A;border:none;cursor:pointer;font-weight:700;font-size:.9rem">💬 聯繫我們</button>
-  </div>`;
+  </div>
+  ${renderServiceTiles()}`;
 
   const items=filteredList();
   const avail=accountsData.filter(a=>!a.sold).length;
@@ -389,6 +413,7 @@ function renderListPage(){
   };
 
   return `
+  ${renderServiceTiles()}
   <div style="max-width:80rem;margin:0 auto;padding:0 1rem 4rem">
     <div style="padding:1.4rem 0 .9rem;display:flex;flex-wrap:wrap;align-items:center;gap:.75rem">
       <div style="flex:1">
@@ -1074,6 +1099,7 @@ function renderLightbox(){
 /* ── FOOTER ── */
 function renderFooter(){
   const messengerLink = siteSettings.messengerLink || 'https://m.me/hsieh1010';
+  const instagramLink = siteSettings.instagramLink || '';
   return`
   <footer>
     <div class="footer-inner">
@@ -1082,14 +1108,24 @@ function renderFooter(){
       <button onclick="openBugReport()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:rgba(255,100,100,.7);border-radius:.5rem;padding:.28rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s" onmouseover="this.style.background='rgba(239,68,68,.18)';this.style.color='#f87171'" onmouseout="this.style.background='rgba(239,68,68,.08)';this.style.color='rgba(255,100,100,.7)'">🐛 回報問題</button>
     </div>
   </footer>
-  <!-- Floating Messenger Button -->
-  <a href="${esc(messengerLink)}" target="_blank" rel="noopener noreferrer" id="messengerFloat"
-     style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:60;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#0084FF,#00C6FF);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,132,255,.45);cursor:pointer;transition:transform .2s,box-shadow .2s;text-decoration:none"
-     onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(0,132,255,.6)'"
-     onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(0,132,255,.45)'"
-     title="透過 Messenger 聯繫我們">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.908 1.434 5.503 3.678 7.2V22l3.378-1.855c.9.25 1.855.388 2.844.388h.1c5.523 0 10-4.145 10-9.243S17.523 2 12 2zm1.042 12.454l-2.546-2.716L5.727 14.5l5.194-5.51 2.546 2.716 4.724-2.762-5.149 5.51z"/></svg>
-  </a>`;
+  <!-- Floating contact buttons -->
+  <div style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:60;display:flex;flex-direction:column;gap:.65rem;align-items:center">
+    ${instagramLink ? `
+    <a href="${esc(instagramLink)}" target="_blank" rel="noopener noreferrer" id="instagramFloat"
+       style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(214,41,118,.45);cursor:pointer;transition:transform .2s,box-shadow .2s;text-decoration:none"
+       onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(214,41,118,.6)'"
+       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(214,41,118,.45)'"
+       title="透過 Instagram 聯繫我們">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+    </a>` : ''}
+    <a href="${esc(messengerLink)}" target="_blank" rel="noopener noreferrer" id="messengerFloat"
+       style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#0084FF,#00C6FF);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,132,255,.45);cursor:pointer;transition:transform .2s,box-shadow .2s;text-decoration:none"
+       onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(0,132,255,.6)'"
+       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(0,132,255,.45)'"
+       title="透過 Messenger 聯繫我們">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.908 1.434 5.503 3.678 7.2V22l3.378-1.855c.9.25 1.855.388 2.844.388h.1c5.523 0 10-4.145 10-9.243S17.523 2 12 2zm1.042 12.454l-2.546-2.716L5.727 14.5l5.194-5.51 2.546 2.716 4.724-2.762-5.149 5.51z"/></svg>
+    </a>
+  </div>`;
 }
 
 /* =====================================================

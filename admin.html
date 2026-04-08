@@ -318,6 +318,12 @@
       <input id="setMessenger" class="inp" placeholder="https://m.me/yourpage" style="margin-bottom:.5rem"/>
     </div>
 
+    <!-- Instagram link -->
+    <div class="glass" style="padding:1rem 1.2rem;border-radius:.9rem;margin-bottom:1rem">
+      <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.75rem">📷 Instagram 連結</div>
+      <input id="setInstagram" class="inp" placeholder="https://www.instagram.com/yourpage" style="margin-bottom:.5rem"/>
+    </div>
+
     <!-- Viewer settings -->
     <div class="glass" style="padding:1rem 1.2rem;border-radius:.9rem;margin-bottom:1rem">
       <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.55);margin-bottom:.75rem">👀 瀏覽數設定</div>
@@ -403,7 +409,7 @@
           <div id="uploadPrompt">
             <svg width="32" height="32" fill="none" stroke="rgba(255,215,0,.5)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto .6rem"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
             <div style="font-size:.82rem;color:rgba(255,255,255,.45)">點擊或拖曳圖片至此（可多選）</div>
-            <div style="font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.3rem">支援 JPG、PNG、GIF、WebP，每張最大 10MB，最多 10 張</div>
+            <div style="font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.3rem">支援 JPG、PNG、GIF、WebP，每張最大 10MB，可一次上傳多張</div>
           </div>
         </div>
         <!-- Current images hint (edit mode) -->
@@ -742,7 +748,6 @@ function onDrop(e) {
 }
 function addFiles(files) {
   for (const f of files) {
-    if (selectedFiles.length >= 10) break;
     selectedFiles.push(f);
   }
   renderThumbs();
@@ -1715,6 +1720,7 @@ function loadSettingsUI() {
   if (!siteSettings) return;
   const s = siteSettings;
   document.getElementById('setMessenger').value = s.messengerLink || '';
+  document.getElementById('setInstagram').value = s.instagramLink || '';
   document.getElementById('setViewerBase').value = s.viewerBase ?? 20;
   document.getElementById('setViewerRange').value = s.viewerRange ?? 15;
   document.getElementById('setViewsMulti').value = s.totalViewsMultiplier ?? 3.2;
@@ -1751,6 +1757,7 @@ function addCategory() {
 async function saveSettings() {
   const data = {
     messengerLink: document.getElementById('setMessenger').value.trim(),
+    instagramLink: document.getElementById('setInstagram').value.trim(),
     viewerBase: Number(document.getElementById('setViewerBase').value) || 20,
     viewerRange: Number(document.getElementById('setViewerRange').value) || 15,
     totalViewsMultiplier: Number(document.getElementById('setViewsMulti').value) || 3.2,

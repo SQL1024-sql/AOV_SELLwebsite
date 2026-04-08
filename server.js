@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS = {
     { label: '土豪專區', min: 3001, max: 9999999, color: '#FFD700', emoji: '💎' },
   ],
   messengerLink: 'https://m.me/hsieh1010',
+  instagramLink: '',
   viewerBase: 20,
   viewerRange: 15,
   totalViewsMultiplier: 3.2,
@@ -47,8 +48,23 @@ function writeSettings(data) {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
-/* ── Password encryption for submissions ── */
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+/* ── Password encryption for submissions ──
+   Key precedence: ENCRYPTION_KEY env var → persisted file → newly-generated (then persisted).
+   Persisting prevents previously-encrypted submissions from becoming undecryptable after restart. */
+const ENC_KEY_FILE = path.join(DATA_DIR, '.encryption_key');
+function loadOrCreateEncKey() {
+  if (process.env.ENCRYPTION_KEY) return process.env.ENCRYPTION_KEY;
+  try {
+    const k = fs.readFileSync(ENC_KEY_FILE, 'utf8').trim();
+    if (k && /^[0-9a-fA-F]{64}$/.test(k)) return k;
+  } catch {}
+  const k = crypto.randomBytes(32).toString('hex');
+  try { fs.writeFileSync(ENC_KEY_FILE, k, { mode: 0o600 }); } catch (e) {
+    console.warn('⚠️  無法寫入加密金鑰檔案，重啟後將無法解密現有提交：', e.message);
+  }
+  return k;
+}
+const ENCRYPTION_KEY = loadOrCreateEncKey();
 const ENC_KEY_BUF = Buffer.from(ENCRYPTION_KEY.slice(0, 64).padEnd(64, '0'), 'hex'); // 32 bytes
 
 function encryptText(text) {
@@ -356,7 +372,7 @@ app.get('/api/accounts', (req, res) => {
 });
 
 /* POST /api/accounts — add new account (with optional images) */
-app.post('/api/accounts', requireAuth, upload.array('images', 10), (req, res) => {
+app.post('/api/accounts', requireAuth, upload.array('images', 200), (req, res) => {
   return withFileLock(ACCOUNTS_FILE, () => {
     const accounts = readAccounts();
     const { price } = req.body;
@@ -401,7 +417,7 @@ app.post('/api/accounts', requireAuth, upload.array('images', 10), (req, res) =>
 });
 
 /* PUT /api/accounts/:id — edit existing account */
-app.put('/api/accounts/:id', requireAuth, upload.array('images', 10), (req, res) => {
+app.put('/api/accounts/:id', requireAuth, upload.array('images', 200), (req, res) => {
   return withFileLock(ACCOUNTS_FILE, () => {
     const accounts = readAccounts();
     const id = parseInt(req.params.id, 10);
@@ -756,7 +772,7 @@ app.post('/api/settings', requireAuth, (req, res) => {
   const updates = req.body;
   // Only allow known keys
   const allowed = ['discountEnabled','discountPerPage','discountMinPct','discountMaxPct',
-    'categories','messengerLink','viewerBase','viewerRange','totalViewsMultiplier'];
+    'categories','messengerLink','instagramLink','viewerBase','viewerRange','totalViewsMultiplier'];
   for (const key of allowed) {
     if (updates[key] !== undefined) current[key] = updates[key];
   }
