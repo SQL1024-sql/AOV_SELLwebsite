@@ -867,7 +867,7 @@ app.post('/api/settings', requireAuth, (req, res) => {
    Body: multipart/form-data, field "image" (single file)
    Returns: { price: <number|null> }
 ══════════════════════════════════════════════════════════ */
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDqXVBOkpLyq1uW0Seqf0TXRShKYtHA0Sk';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 
 function parseOcrPrice(raw) {
@@ -899,7 +899,7 @@ app.post('/api/ocr', requireAuth, ocrUpload.single('image'), async (req, res) =>
     };
 
     const apiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
     );
     const data = await apiRes.json();
