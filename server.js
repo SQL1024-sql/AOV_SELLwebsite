@@ -862,6 +862,66 @@ app.post('/api/settings', requireAuth, (req, res) => {
   res.json(current);
 });
 
+/* ══════════════════════════════════════════════════════════
+   OCR — POST /api/ocr  (Gemini 1.5 Flash)
+   Body: multipart/form-data, field "image" (single file)
+   Returns: { price: <number|null> }
+══════════════════════════════════════════════════════════ */
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDqXVBOkpLyq1uW0Seqf0TXRShKYtHA0Sk';
+
+
+function parseOcrPrice(raw) {
+  const s = String(raw).trim();
+  if (s.includes('.')) {
+    const [intPart, decPart] = s.split('.');
+    const dec = (decPart + '0')[0]; // take first decimal digit
+    return parseInt(intPart, 10) * 10000 + parseInt(dec, 10) * 1000;
+  }
+  return parseInt(s, 10);
+}
+const ocrUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+app.post('/api/ocr', requireAuth, ocrUpload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '沒有收到圖片' });
+  if (GEMINI_API_KEY === 'YOUR_KEY_HERE') return res.status(500).json({ error: '未設定 GEMINI_API_KEY' });
+
+  try {
+    const b64 = req.file.buffer.toString('base64');
+    const mime = req.file.mimetype || 'image/jpeg';
+
+    const body = {
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: mime, data: b64 } },
+          { text: '這張圖片中有一個代表價格的大數字（例如 1500、5000、20000）。請用 JSON 格式回傳，只能回傳這個格式：{"price": 數字或null, "confidence": 0到100的整數}。price 是你辨識到的價格數字，confidence 是你對這個結果的信心程度（0-100）。不要回傳其他任何文字。' }
+        ]
+      }]
+    };
+
+    const apiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    );
+    const data = await apiRes.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    let price = null, confidence = 0;
+    try {
+      const jsonStr = text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(jsonStr);
+      price = parsed.price && parsed.price > 0 ? parseOcrPrice(parsed.price) : null;
+      confidence = parseInt(parsed.confidence, 10) || 0;
+    } catch {
+      // fallback: try to extract number directly
+      const num = parseInt(text.replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(num) && num > 0) { price = num; confidence = 50; }
+    }
+    res.json({ price: isNaN(price) || price <= 0 ? null : price, confidence });
+  } catch (e) {
+    console.error('OCR error:', e.message);
+    res.status(500).json({ error: 'OCR 辨識失敗' });
+  }
+});
+
 /* ── 404 handler — clean response for unknown routes ── */
 app.use((req, res) => {
   res.status(404).json({ error: '找不到該頁面' });

@@ -809,11 +809,69 @@ function onDrop(e) {
   const files = Array.from(e.dataTransfer.files).filter(f => /^image\//i.test(f.type));
   if (files.length) addFiles(files);
 }
+async function runOcrOnFile(file, index) {
+  const fd = new FormData();
+  fd.append('image', file);
+  try {
+    const res = await fetch('/api/ocr', { method: 'POST', body: fd });
+    const data = await res.json();
+    const spinner = document.querySelector(`#ocrSpinner_${index}`);
+
+    if (data.price && data.confidence >= 90) {
+      // High confidence — auto fill
+      filePrices[index] = String(data.price);
+      const inp = document.querySelector(`#ocrInput_${index}`);
+      if (inp) {
+        inp.value = data.price;
+        inp.style.borderColor = 'rgba(74,222,128,.5)';
+        inp.title = `AI辨識（信心度 ${data.confidence}%）`;
+      }
+      if (selectedFiles.length === 1) {
+        const fp = document.getElementById('fPrice');
+        if (fp) { fp.value = data.price; fp.style.borderColor = 'rgba(74,222,128,.5)'; }
+      }
+      if (spinner) spinner.remove();
+    } else if (data.price && data.confidence >= 0) {
+      // Low confidence — show suggestion, require manual confirm
+      if (spinner) {
+        spinner.textContent = `AI建議: ${data.price}（信心度${data.confidence}%，請手動確認）`;
+        spinner.style.background = 'rgba(251,191,36,.85)';
+        spinner.style.color = '#07071A';
+        spinner.style.fontSize = '.58rem';
+        spinner.style.whiteSpace = 'normal';
+        spinner.style.width = '100%';
+        spinner.style.position = 'static';
+        spinner.style.transform = 'none';
+        spinner.style.marginTop = '.2rem';
+      }
+      const inp = document.querySelector(`#ocrInput_${index}`);
+      if (inp) inp.placeholder = `建議 ${data.price}`;
+    } else {
+      // No result
+      if (spinner) {
+        spinner.textContent = '無法辨識，請手動輸入';
+        spinner.style.background = 'rgba(248,113,113,.7)';
+        spinner.style.position = 'static';
+        spinner.style.transform = 'none';
+        spinner.style.marginTop = '.2rem';
+      }
+    }
+  } catch (e) {
+    const spinner = document.querySelector(`#ocrSpinner_${index}`);
+    if (spinner) spinner.remove();
+  }
+}
+
 function addFiles(files) {
+  const startIdx = selectedFiles.length;
   for (const f of files) {
     selectedFiles.push(f);
   }
   renderThumbs();
+  // Auto OCR each new file
+  for (let i = startIdx; i < selectedFiles.length; i++) {
+    runOcrOnFile(selectedFiles[i], i);
+  }
 }
 function removeFile(idx) {
   selectedFiles.splice(idx, 1);
@@ -849,11 +907,13 @@ function renderThumbs() {
   list.innerHTML = selectedFiles.map((f, i) => {
     const url = URL.createObjectURL(f);
     _thumbUrls.push(url);
+    const hasPrice = filePrices[i] && filePrices[i] !== '';
     return `<div style="position:relative;display:inline-block;vertical-align:top;${showPerPrice ? 'width:120px' : ''}">
       <img src="${url}" style="width:${showPerPrice ? '120px' : '72px'};height:${showPerPrice ? '90px' : '54px'};object-fit:cover;border-radius:.4rem;border:1px solid rgba(255,215,0,.3);display:block"/>
       <button type="button" onclick="removeFile(${i})" style="position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:#f87171;border:none;cursor:pointer;font-size:9px;color:#fff;line-height:17px;text-align:center;font-weight:900;padding:0">✕</button>
+      ${!hasPrice ? `<div id="ocrSpinner_${i}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.65);border-radius:.3rem;padding:.15rem .35rem;font-size:.6rem;color:#FFD700;white-space:nowrap">AI辨識中…</div>` : ''}
       <div style="font-size:.6rem;color:rgba(255,255,255,.3);width:${showPerPrice ? '120px' : '72px'};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:.15rem">${escH(f.name)}</div>
-      ${showPerPrice ? `<input type="number" min="1" placeholder="NT$" value="${escH(filePrices[i])}" oninput="filePrices[${i}]=this.value" style="width:120px;margin-top:.2rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.22);color:#FFD700;outline:none;border-radius:.35rem;padding:.25rem .4rem;font-size:.75rem;font-weight:700"/>` : ''}
+      ${showPerPrice ? `<input id="ocrInput_${i}" type="number" min="1" placeholder="NT$" value="${escH(filePrices[i])}" oninput="filePrices[${i}]=this.value" style="width:120px;margin-top:.2rem;background:rgba(255,255,255,.06);border:1px solid ${hasPrice ? 'rgba(74,222,128,.5)' : 'rgba(255,215,0,.22)'};color:#FFD700;outline:none;border-radius:.35rem;padding:.25rem .4rem;font-size:.75rem;font-weight:700"/>` : ''}
     </div>`;
   }).join('');
 }
