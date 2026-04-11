@@ -835,14 +835,12 @@ async function runOcrOnFile(file, index) {
       // Low confidence — show suggestion, require manual confirm
       if (spinner) {
         spinner.textContent = `AI建議: ${data.price}（信心度${data.confidence}%，請手動確認）`;
-        spinner.style.background = 'rgba(251,191,36,.85)';
-        spinner.style.color = '#07071A';
-        spinner.style.fontSize = '.58rem';
-        spinner.style.whiteSpace = 'normal';
-        spinner.style.width = '100%';
-        spinner.style.position = 'static';
-        spinner.style.transform = 'none';
-        spinner.style.marginTop = '.2rem';
+        spinner.style.cssText = 'background:rgba(251,191,36,.85);color:#07071A;font-size:.58rem;white-space:normal;width:100%;position:static;transform:none;margin-top:.2rem;padding:.2rem .35rem;border-radius:.3rem;display:block';
+      }
+      // Single image mode: hint below price field
+      if (selectedFiles.length === 1) {
+        const fp = document.getElementById('fPrice');
+        if (fp) { fp.placeholder = `AI建議 ${data.price}，請確認`; fp.style.borderColor = 'rgba(251,191,36,.5)'; }
       }
       const inp = document.querySelector(`#ocrInput_${index}`);
       if (inp) inp.placeholder = `建議 ${data.price}`;
@@ -850,10 +848,11 @@ async function runOcrOnFile(file, index) {
       // No result
       if (spinner) {
         spinner.textContent = '無法辨識，請手動輸入';
-        spinner.style.background = 'rgba(248,113,113,.7)';
-        spinner.style.position = 'static';
-        spinner.style.transform = 'none';
-        spinner.style.marginTop = '.2rem';
+        spinner.style.cssText = 'background:rgba(248,113,113,.7);color:#fff;font-size:.58rem;width:100%;position:static;transform:none;margin-top:.2rem;padding:.2rem .35rem;border-radius:.3rem;display:block';
+      }
+      if (selectedFiles.length === 1) {
+        const fp = document.getElementById('fPrice');
+        if (fp) fp.style.borderColor = 'rgba(248,113,113,.5)';
       }
     }
   } catch (e) {
